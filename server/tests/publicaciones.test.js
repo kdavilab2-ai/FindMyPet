@@ -42,16 +42,20 @@ describe('RF-04, RF-07, RF-20, RF-21: registrar reportes', () => {
   });
 
   test('publica un animal encontrado sin nombre', async () => {
-    const res = await publicar(luis.token, { tipo: 2, nombreAnimal: '' });
+    const res = await publicar(luis.token, { tipo: 2, nombreAnimal: '', whatsapp: '+593 90 000 0006' });
     expect(res.status).toBe(201);
     expect(res.body.estado).toBe('Pendiente');
     expect(res.body.nombreAnimal).toBeNull();
+    const detalle = await request(app).get(`/api/publicaciones/${res.body.id}`).set(conToken(luis.token));
+    expect(detalle.body.contactos).toEqual([{ tipo: 'WhatsApp', valor: '0900000006' }]);
   });
 
   test('valida fotos (mínimo 1, máximo 5, contenido real), contacto, fecha y ubicación (RNF-12, RNF-18)', async () => {
     expect((await publicar(ana.token, {}, { fotos: 0 })).status).toBe(400);
     expect((await publicar(ana.token, {}, { fotos: 6 })).status).toBe(400);
     expect((await publicar(ana.token, { whatsapp: '' })).status).toBe(400);
+    expect((await publicar(ana.token, { whatsapp: '+593 090 000 0004' })).status).toBe(400);
+    expect((await publicar(ana.token, { whatsapp: '+57 90 000 0004' })).status).toBe(400);
     expect((await publicar(ana.token, { fechaEvento: '2999-01-01' })).status).toBe(400);
     expect((await publicar(ana.token, { idSector: '' })).status).toBe(400);
     expect((await publicar(ana.token, { idRaza: 999 })).status).toBe(400);
@@ -111,7 +115,7 @@ describe('RF-08, RF-13, RF-16: consulta, búsqueda y filtros', () => {
     expect(anonimo.body.contactos).toBeNull();
     expect(anonimo.body.multimedia).toHaveLength(2);
     const conSesion = await request(app).get(`/api/publicaciones/${p.id}`).set(conToken(luis.token));
-    expect(conSesion.body.contactos).toEqual([{ tipo: 'WhatsApp', valor: '0000000004' }]);
+    expect(conSesion.body.contactos).toEqual([{ tipo: 'WhatsApp', valor: '0900000004' }]);
     expect(conSesion.body.autor).toBe('Ana P.');
   });
 });
@@ -137,7 +141,7 @@ describe('RF-05, RF-06, RF-14, RNF-13: gestión por el autor', () => {
     const img = await sharp({ create: { width: 300, height: 300, channels: 3, background: '#fff' } }).png().toBuffer();
     const res = await request(app).put(`/api/publicaciones/${id}`).set(conToken(ana.token))
       .field('nombreAnimal', 'Firulais II').field('idEspecie', '1').field('descripcion', 'Descripción actualizada del perro')
-      .field('idSector', String(actual.ubicacion.idSector)).field('fechaEvento', actual.fechaEvento).field('whatsapp', '0000000004')
+      .field('idSector', String(actual.ubicacion.idSector)).field('fechaEvento', actual.fechaEvento).field('whatsapp', '+593-90-000-0004')
       .field('quitarArchivos', String(actual.multimedia[0].id))
       .attach('archivos', img, { filename: 'nueva.png', contentType: 'image/png' });
     expect(res.status).toBe(200);
@@ -181,7 +185,7 @@ describe('RF-15: contacto para adopción notifica al refugio', () => {
     const [pelusa] = (await request(app).get('/api/publicaciones?tipo=3')).body.datos;
     const res = await request(app).post(`/api/publicaciones/${pelusa.id}/interes`).set(conToken(luis.token));
     expect(res.status).toBe(200);
-    expect(res.body.contactos[0].valor).toBe('0000000004');
+    expect(res.body.contactos[0].valor).toBe('0900000004');
     const notif = await request(app).get('/api/notificaciones').set(conToken(refugio.token));
     expect(notif.body.noLeidas).toBe(1);
     expect(notif.body.datos[0].mensaje).toContain('interesado en adoptar a Pelusa');

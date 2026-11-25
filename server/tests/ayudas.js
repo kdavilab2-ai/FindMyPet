@@ -56,7 +56,7 @@ async function datosBase(datos = {}) {
     latitud: -2.1415,
     longitud: -79.6013,
     fechaEvento: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
-    whatsapp: '0000000004',
+    whatsapp: '0900000004',
     ...datos,
   };
 }

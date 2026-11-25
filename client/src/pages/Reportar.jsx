@@ -96,8 +96,12 @@ export default function Reportar() {
       return;
     }
     if (datos.descripcion.trim().length < 10) return setError('La descripción debe tener al menos 10 caracteres');
-    if (!datos.telefono && !datos.whatsapp && !datos.correoContacto) return setError('Ingrese al menos un dato de contacto');
-    for (const t of [datos.telefono, datos.whatsapp]) if (t && !/^0\d{9}$/.test(t)) return setError('Los teléfonos deben tener 10 dígitos y empezar con 0');
+    const whatsapp = datos.whatsapp.replace(/[ -]/g, '');
+    if (!datos.telefono && !whatsapp && !datos.correoContacto) return setError('Ingrese al menos un dato de contacto');
+    if (datos.telefono && !/^0\d{9}$/.test(datos.telefono)) return setError('El teléfono debe tener 10 dígitos y empezar con 0');
+    if (whatsapp && !/^(?:0\d{9}|\+593[1-9]\d{8})$/.test(whatsapp)) {
+      return setError('Ingrese un WhatsApp ecuatoriano de 10 dígitos o use +593 sin el cero inicial');
+    }
     if (tipo !== 3 && !ubicacion.idSector) return setError('Seleccione la provincia, el cantón y el sector');
 
     const f = new FormData();
@@ -222,7 +226,7 @@ export default function Reportar() {
           <fieldset>
             <legend className="etiqueta">Contacto (al menos uno; solo lo verán usuarios registrados)</legend>
             <div className="grid gap-3 sm:grid-cols-3">
-              <input className="input" inputMode="numeric" placeholder="WhatsApp 09XXXXXXXX" aria-label="WhatsApp" {...campo('whatsapp')} />
+              <input className="input" type="tel" placeholder="WhatsApp 09XXXXXXXX o +5939XXXXXXXX" aria-label="WhatsApp" {...campo('whatsapp')} />
               <input className="input" inputMode="numeric" placeholder="Teléfono 09XXXXXXXX" aria-label="Teléfono" {...campo('telefono')} />
               <input className="input" type="email" placeholder="Correo" aria-label="Correo de contacto" {...campo('correoContacto')} />
             </div>

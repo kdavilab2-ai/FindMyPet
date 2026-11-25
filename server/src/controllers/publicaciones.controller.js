@@ -43,14 +43,14 @@ const obtenerPorId = (id) => una(`${SELECT_PUBLICACION} WHERE p.id_publicacion =
 function leerContactos(b) {
   const contactos = [];
   const telefono = texto(b.telefono);
-  const whatsapp = texto(b.whatsapp);
+  const whatsapp = texto(b.whatsapp).replace(/[ -]/g, '').replace(/^\+593(?=[1-9]\d{8}$)/, '0');
   const correo = texto(b.correoContacto).toLowerCase();
   if (telefono) {
     if (!REGEX_TELEFONO.test(telefono)) throw new ErrorHttp(400, 'El teléfono de contacto debe tener 10 dígitos y empezar con 0');
     contactos.push([TIPO_CONTACTO.TELEFONO, telefono]);
   }
   if (whatsapp) {
-    if (!REGEX_TELEFONO.test(whatsapp)) throw new ErrorHttp(400, 'El WhatsApp debe tener 10 dígitos y empezar con 0');
+    if (!REGEX_TELEFONO.test(whatsapp)) throw new ErrorHttp(400, 'Ingrese un WhatsApp ecuatoriano de 10 dígitos o use +593 sin el cero inicial');
     contactos.push([TIPO_CONTACTO.WHATSAPP, whatsapp]);
   }
   if (correo) {

@@ -75,11 +75,11 @@ async function main() {
   await pool.query(`TRUNCATE usuario, ubicacion, publicacion, coincidencia, moderacion, notificacion,
                     valoracion, solicitud_donacion, donacion RESTART IDENTITY CASCADE`);
 
-  const admin = await crearUsuario({ rol: 3, nombres: 'Administrador', apellidos: 'FindMyPet', correo: 'admin@findmypet.test', telefono: '0000000005' });
-  const ana = await crearUsuario({ rol: 1, nombres: 'Ana', apellidos: 'Torres', correo: 'ana@findmypet.test', telefono: '0000000004' });
-  const luis = await crearUsuario({ rol: 1, nombres: 'Luis', apellidos: 'Mendoza', correo: 'luis@findmypet.test', telefono: '0000000006' });
-  const huellitasU = await crearUsuario({ rol: 2, nombres: 'María', apellidos: 'Vera', correo: 'huellitas@findmypet.test', telefono: '0000000007' });
-  const patitasU = await crearUsuario({ rol: 2, nombres: 'Jorge', apellidos: 'Castro', correo: 'patitas@findmypet.test', telefono: '0000000008' });
+  const admin = await crearUsuario({ rol: 3, nombres: 'Administrador', apellidos: 'FindMyPet', correo: 'admin@findmypet.test', telefono: '0900000005' });
+  const ana = await crearUsuario({ rol: 1, nombres: 'Ana', apellidos: 'Torres', correo: 'ana@findmypet.test', telefono: '0900000004' });
+  const luis = await crearUsuario({ rol: 1, nombres: 'Luis', apellidos: 'Mendoza', correo: 'luis@findmypet.test', telefono: '0900000006' });
+  const huellitasU = await crearUsuario({ rol: 2, nombres: 'María', apellidos: 'Vera', correo: 'huellitas@findmypet.test', telefono: '0900000007' });
+  const patitasU = await crearUsuario({ rol: 2, nombres: 'Jorge', apellidos: 'Castro', correo: 'patitas@findmypet.test', telefono: '0900000008' });
 
   const huellitas = await una(
     'INSERT INTO refugio (id_usuario, id_ubicacion, nombre, autorizado) VALUES ($1, $2, $3, TRUE) RETURNING id_refugio',
@@ -96,41 +96,41 @@ async function main() {
   const rocky = await crearPublicacion({
     usuario: ana, tipo: 1, nombre: 'Rocky', especie: 'Perro', raza: 'Mestizo', tamano: 'Mediano', colores: ['Café', 'Blanco'],
     descripcion: 'Collar rojo con placa. Es amigable pero se asusta con los ruidos fuertes. Se escapó en la noche.',
-    ubicacion: ['Milagro', 'Las Piñas', 'Cdla. Las Piñas, Mz. 4', -2.1415, -79.6013], fecha: diasAtras(3), whatsapp: '0000000004',
+    ubicacion: ['Milagro', 'Las Piñas', 'Cdla. Las Piñas, Mz. 4', -2.1415, -79.6013], fecha: diasAtras(3), whatsapp: '0900000004',
     foto: fotos.rocky, horas: 70,
   });
   await crearPublicacion({
     usuario: luis, tipo: 1, nombre: 'Michi', especie: 'Gato', raza: 'Siamés', tamano: 'Pequeño', colores: ['Crema', 'Café'],
     descripcion: 'Ojos azules, muy tímida. Se escapó por la ventana del segundo piso.',
-    ubicacion: ['Milagro', 'Centro', 'Calle 9 de Octubre', -2.1335, -79.5925], fecha: diasAtras(5), whatsapp: '0000000006',
+    ubicacion: ['Milagro', 'Centro', 'Calle 9 de Octubre', -2.1335, -79.5925], fecha: diasAtras(5), whatsapp: '0900000006',
     foto: fotos.michi, horas: 110,
   });
   await crearPublicacion({
     usuario: luis, tipo: 2, nombre: null, especie: 'Perro', raza: 'Mestizo', tamano: 'Mediano', colores: ['Café', 'Blanco'],
     descripcion: 'Perro café con blanco encontrado cerca del parque, tiene collar rojo sin placa. Está asustado pero bien.',
-    ubicacion: ['Milagro', 'Las Piñas', 'Parque de Las Piñas', -2.1431, -79.6034], fecha: diasAtras(2), whatsapp: '0000000006',
+    ubicacion: ['Milagro', 'Las Piñas', 'Parque de Las Piñas', -2.1431, -79.6034], fecha: diasAtras(2), whatsapp: '0900000006',
     foto: fotos['perro-encontrado'], horas: 40,
   });
   await crearPublicacion({
     usuario: ana, tipo: 2, nombre: null, especie: 'Gato', raza: 'Mestizo', tamano: 'Pequeño', colores: ['Atigrado', 'Gris'],
     descripcion: 'Gatito atigrado encontrado en la Ciudadela Universitaria, muy cariñoso. Parece doméstico.',
-    ubicacion: ['Milagro', 'Ciudadela Universitaria', 'Junto a la UNEMI', -2.1495, -79.6031], fecha: diasAtras(1), whatsapp: '0000000004',
+    ubicacion: ['Milagro', 'Ciudadela Universitaria', 'Junto a la UNEMI', -2.1495, -79.6031], fecha: diasAtras(1), whatsapp: '0900000004',
     foto: fotos['gato-encontrado'], horas: 20,
   });
   await crearPublicacion({
     usuario: huellitasU, tipo: 3, nombre: 'Pelusa', especie: 'Gato', raza: 'Mestizo', tamano: 'Pequeño', colores: ['Blanco'],
     descripcion: 'Gatita rescatada, muy dulce. Busca un hogar tranquilo y sin perros.',
-    salud: 'Vacunada, desparasitada y esterilizada', whatsapp: '0000000007', foto: fotos.pelusa, horas: 200,
+    salud: 'Vacunada, desparasitada y esterilizada', whatsapp: '0900000007', foto: fotos.pelusa, horas: 200,
   });
   await crearPublicacion({
     usuario: huellitasU, tipo: 3, nombre: 'Toby', especie: 'Perro', raza: 'Mestizo', tamano: 'Mediano', colores: ['Dorado'],
     descripcion: 'Cachorro juguetón de 6 meses. Ideal para familia con patio.',
-    salud: 'Vacunas al día y desparasitado', whatsapp: '0000000007', foto: fotos.toby, horas: 150,
+    salud: 'Vacunas al día y desparasitado', whatsapp: '0900000007', foto: fotos.toby, horas: 150,
   });
   await crearPublicacion({
     usuario: ana, tipo: 1, estado: 2, nombre: 'Luna', especie: 'Perro', raza: 'Husky', tamano: 'Grande', colores: ['Gris', 'Blanco'],
     descripcion: 'Gracias a FindMyPet volvió a casa después de tres días.',
-    ubicacion: ['Milagro', 'Los Chirijos', 'Cdla. Los Chirijos', -2.1271, -79.5986], fecha: diasAtras(20), whatsapp: '0000000004',
+    ubicacion: ['Milagro', 'Los Chirijos', 'Cdla. Los Chirijos', -2.1271, -79.5986], fecha: diasAtras(20), whatsapp: '0900000004',
     foto: fotos.luna, horas: 480,
   });
 
