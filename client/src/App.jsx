@@ -64,8 +64,9 @@ export default function App() {
           <Route path="*" element={<NoEncontrada />} />
         </Routes>
       </main>
-      <footer className={`hidden border-t border-borde py-6 text-center text-xs text-suave ${acceso ? '' : 'md:block'}`}>
-        FindMyPet · Grupo 4 · Construcción de Software, Universidad Estatal de Milagro · <Link to="/privacidad" className="hover:text-texto">Privacidad</Link>
+      <footer className={`hidden border-t border-borde px-4 py-6 text-center text-xs text-suave ${acceso ? '' : 'md:block'}`}>
+        <p>FindMyPet es un proyecto académico desarrollado por el Grupo 4 de Construcción de Software de la Universidad Estatal de Milagro.</p>
+        <Link to="/privacidad" className="mt-2 inline-block underline underline-offset-2 hover:text-texto">Política de privacidad</Link>
       </footer>
       {!acceso && <NavInferior />}
     </div>
