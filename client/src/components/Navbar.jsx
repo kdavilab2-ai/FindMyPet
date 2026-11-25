@@ -9,11 +9,11 @@ const claseEnlace = ({ isActive }) =>
   `figma-enlace-nav ${isActive ? 'activo' : ''}`;
 
 export function Logo({ grande = false }) {
-  if (grande) return <span className="flex items-center gap-2 text-3xl font-extrabold"><IconoFigma nombre="marca" /> <span>Find<span className="text-violeta">MyPet</span></span></span>;
+  if (grande) return <span className="flex items-center gap-2 text-3xl font-extrabold text-white"><IconoFigma nombre="marca" /> <span>FindMyPet</span></span>;
   return (
     <span className="figma-marca">
       <IconoFigma nombre="marca" />
-      <span>Find <span className="text-violeta">MyPet</span></span>
+      <span className="text-white">Find MyPet</span>
     </span>
   );
 }

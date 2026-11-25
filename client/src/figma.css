@@ -80,7 +80,6 @@
 .figma-acceso { display: grid; min-height: 100dvh; grid-template-columns: 4fr 5fr; }
 .figma-marca-acceso { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; background: linear-gradient(150deg, #2a1f5c, var(--color-fondo) 84%); text-align: center; }
 .figma-marca-acceso-nombre { margin-top: 20px; color: white; font-size: 46px; font-weight: 700; }
-.figma-marca-acceso-nombre span { color: var(--color-violeta); }
 .figma-lema { margin-top: 3px; color: var(--color-lavanda); font-size: 17px; }
 .figma-marca-acceso dl { display: flex; justify-content: space-around; width: min(100%,510px); margin-top: 52px; gap: 14px; }
 .figma-marca-acceso dl div { display: flex; flex-direction: column-reverse; }

@@ -23,7 +23,7 @@ function MarcaAcceso() {
   return (
     <aside className="figma-marca-acceso">
       <Link to="/" aria-label="FindMyPet, inicio"><IconoFigma nombre="logo" /></Link>
-      <p className="figma-marca-acceso-nombre">Find<span>MyPet</span></p>
+      <p className="figma-marca-acceso-nombre">FindMyPet</p>
       <p className="figma-lema">Porque cada mascota merece volver a casa.</p>
       <dl>{['reportes activos', 'reencuentros', 'adopciones'].map((etiqueta, i) => (
         <div key={etiqueta}><dt>{etiqueta}</dt><dd>{totales?.[i] ?? '–'}</dd></div>
