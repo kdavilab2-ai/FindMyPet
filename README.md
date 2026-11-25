@@ -95,15 +95,14 @@ se muestra en la consola del servidor.
 
 Abre esta carpeta en Codex de escritorio. El repositorio de respaldo es [FindMyPet](https://github.com/kdavilab2-ai/FindMyPet). Usa tu cuenta autorizada de GitHub y confirma que tienes acceso al repositorio privado.
 
-Antes de iniciar una modificación, actualiza `main` y crea una rama:
+Trabaja en `main`. Con el árbol de trabajo limpio, actualiza la rama antes de iniciar una modificación.
 
 ```powershell
 git switch main
 git pull --ff-only
-git switch -c feature/mi-cambio
 ```
 
-Después de editar, guarda los archivos seleccionados y revisa qué se incluirá:
+Después de verificar los cambios con `npm test` en `server` y `npm run build` en `client`, prepara los archivos seleccionados y revisa qué se incluirá.
 
 ```powershell
 git status --short
@@ -111,10 +110,10 @@ git diff
 git add -- ruta/al/archivo
 git diff --cached
 git commit -m "feat: describe el cambio"
-git push -u origin feature/mi-cambio
+git push origin main
 ```
 
-En GitHub, abre una solicitud de cambios de tu rama hacia `main`. Después de integrarla, vuelve a `main` y actualízala con `git pull --ff-only`.
+Compara `git rev-parse HEAD` con el identificador que devuelve `git ls-remote origin refs/heads/main`. Si GitHub rechaza el push porque `main` avanzó, revisa el historial remoto e integra los cambios antes de volver a verificar y subir.
 
 - **Consultar una versión.** Ejecuta `git log --oneline --graph --all` y luego `git show SHA`, sustituyendo `SHA` por el identificador del commit.
 - **Recuperar una versión en otra rama.** Ejecuta `git switch -c feature/recuperar-version SHA` con un árbol de trabajo limpio. Para deshacer un commit ya compartido, usa `git revert SHA` en una rama y revisa el cambio antes de subirlo.
