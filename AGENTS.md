@@ -50,6 +50,17 @@ client/src/
 - Ejecuta `cd server && npm test` y `cd client && npm run build` antes de terminar. Ambos deben pasar.
 - Commits en español con prefijo: `feat:`, `fix:`, `test:`, `docs:`, `refactor:`.
 
+### Sincronización con GitHub
+
+El remoto autorizado es el repositorio privado [kdavilab2-ai/FindMyPet](https://github.com/kdavilab2-ai/FindMyPet). Cada cambio solicitado incluye su sincronización en la rama correspondiente.
+
+1. Trabaja en el proyecto local y verifica el comportamiento con las pruebas pertinentes. Ejecuta también las comprobaciones obligatorias del backend y del frontend.
+2. Revisa el diff y los archivos preparados. Excluye secretos, credenciales, datos personales, archivos temporales y otros datos sensibles. Prepara únicamente los archivos de la tarea.
+3. Cuando el cambio esté completo, revisado y verificado, crea un commit descriptivo y súbelo a la rama correspondiente en `origin`. Solicita autorización si el entorno la exige.
+4. Comprueba que el identificador del commit en la rama remota coincide con el local. Nunca uses `git push --force` ni `--force-with-lease`. Antes de integrar cambios remotos, verifica su historial y conserva los cambios ajenos.
+5. Si falla una prueba, investiga y corrige el fallo cuando puedas. Mantén local el cambio hasta completar la verificación. Mantén también locales los cambios incompletos, inseguros o sin revisar.
+6. Al cerrar la tarea, indica qué modificaste, qué verificaste y si quedó sincronizado. Prioriza el desarrollo del aplicativo y actualiza la documentación cuando cambie el uso o la operación del proyecto.
+
 ## Comandos
 - Base de datos: `cd server && npm run db:migrate && npm run seed`
 - Backend: `cd server && npm run dev` (puerto 4000)
