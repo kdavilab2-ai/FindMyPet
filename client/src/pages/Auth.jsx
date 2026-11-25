@@ -1,14 +1,59 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { Alerta } from '../components/Comunes';
 import { Logo } from '../components/Navbar';
+import IconoFigma from '../components/IconoFigma';
 import SelectorUbicacion, { ubicacionDesdeApi } from '../components/SelectorUbicacion';
 
-function Marco({ titulo, subtitulo, children, ancho = 'max-w-md' }) {
+function MarcaAcceso() {
+  const [totales, setTotales] = useState(null);
+  useEffect(() => {
+    let vigente = true;
+    Promise.all([
+      api.get('/publicaciones/resumen'),
+      api.get('/publicaciones?estado=2'),
+      api.get('/publicaciones?estado=6'),
+    ]).then(([resumen, reencuentros, adopciones]) => {
+      if (vigente) setTotales([resumen.desaparecidas + resumen.encontradas + resumen.adopcion, reencuentros.total, adopciones.total]);
+    }).catch(() => {});
+    return () => { vigente = false; };
+  }, []);
   return (
-    <div className={`mx-auto flex min-h-[calc(100vh-160px)] ${ancho} flex-col justify-center px-4 py-8`}>
+    <aside className="figma-marca-acceso">
+      <Link to="/" aria-label="FindMyPet, inicio"><IconoFigma nombre="logo" /></Link>
+      <p className="figma-marca-acceso-nombre">Find<span>MyPet</span></p>
+      <p className="figma-lema">Porque cada mascota merece volver a casa.</p>
+      <dl>{['reportes activos', 'reencuentros', 'adopciones'].map((etiqueta, i) => (
+        <div key={etiqueta}><dt>{etiqueta}</dt><dd>{totales?.[i] ?? '–'}</dd></div>
+      ))}</dl>
+    </aside>
+  );
+}
+
+function Marco({ titulo, subtitulo, children, variante }) {
+  if (variante) return (
+    <div className={`figma-acceso figma-${variante}`}>
+      <MarcaAcceso />
+      <div className="figma-acceso-contenido">
+        {variante === 'registro' && (
+          <div className="figma-registro-movil">
+            <Link to="/login" className="figma-volver" aria-label="Volver a iniciar sesión"><IconoFigma nombre="volver" /></Link>
+            <span>Crear cuenta</span>
+            <IconoFigma nombre="logo" />
+          </div>
+        )}
+        <section className="figma-acceso-panel">
+          <h1>{variante === 'registro' ? <><span className="hidden md:inline">{titulo}</span><span className="md:hidden">Únete a FindMyPet</span></> : titulo}</h1>
+          {subtitulo && <p className="figma-acceso-subtitulo">{subtitulo}</p>}
+          {children}
+        </section>
+      </div>
+    </div>
+  );
+  return (
+    <div className="mx-auto flex min-h-[calc(100vh-160px)] max-w-md flex-col justify-center px-4 py-8">
       <div className="mb-6 flex justify-center"><Logo grande /></div>
       <div className="panel p-6 sm:p-8">
         <h1 className="text-2xl text-lavanda">{titulo}</h1>
@@ -43,25 +88,25 @@ export function Login() {
   };
 
   return (
-    <Marco titulo="Iniciar sesión" subtitulo="Ingresa para reportar y dar seguimiento a tus casos.">
-      <form onSubmit={enviar} className="space-y-4">
+    <Marco titulo="Iniciar sesión" subtitulo="Ingresa con tu correo registrado." variante="login">
+      <form onSubmit={enviar} className="figma-campos-acceso">
         <Alerta tipo="info">{aviso}</Alerta>
         <Alerta tipo="exito">{state?.mensaje}</Alerta>
         <Alerta>{error}</Alerta>
         <div>
           <label className="etiqueta" htmlFor="correo">Correo electrónico</label>
-          <input id="correo" type="email" required autoComplete="email" className="input" value={datos.correo}
+          <input id="correo" type="email" placeholder="nombre@correo.com" required autoComplete="email" className="input" value={datos.correo}
             onChange={(e) => { limpiarAviso(); setDatos({ ...datos, correo: e.target.value }); }} />
         </div>
         <div>
           <label className="etiqueta" htmlFor="contrasena">Contraseña</label>
-          <input id="contrasena" type="password" required autoComplete="current-password" className="input" value={datos.contrasena}
+          <input id="contrasena" type="password" placeholder="••••••••" required autoComplete="current-password" className="input" value={datos.contrasena}
             onChange={(e) => setDatos({ ...datos, contrasena: e.target.value })} />
         </div>
-        <div className="text-right"><Link to="/olvide" className="text-xs text-lavanda hover:underline">¿Olvidaste tu contraseña?</Link></div>
+        <div className="figma-recuperar"><Link to="/olvide">¿Olvidaste tu contraseña?</Link></div>
         <button className="btn btn-primario w-full py-3" disabled={enviando}>{enviando ? 'Ingresando…' : 'Ingresar'}</button>
       </form>
-      <p className="mt-5 text-center text-sm text-suave">¿No tienes cuenta? <Link to="/registro" className="font-semibold text-lavanda hover:underline">Regístrate</Link></p>
+      <p className="figma-alternar-acceso">¿No tienes cuenta? <Link to="/registro">Regístrate</Link></p>
     </Marco>
   );
 }
@@ -100,27 +145,32 @@ export function Registro() {
   };
 
   return (
-    <Marco titulo="Crear cuenta" subtitulo="Únete a la comunidad que ayuda a las mascotas a volver a casa." ancho="max-w-xl">
-      <form onSubmit={enviar} className="space-y-4">
+    <Marco titulo="Crear cuenta" subtitulo="Únete a la comunidad FindMyPet." variante="registro">
+      <form onSubmit={enviar} className="figma-campos-acceso">
         <Alerta>{error}</Alerta>
         <fieldset>
+          <legend className="etiqueta">Nombre completo</legend>
+          <div className="grid grid-cols-2 gap-3">
+            <input aria-label="Nombres" autoComplete="given-name" placeholder="Nombres" required maxLength={80} className="input" {...campo('nombres')} />
+            <input aria-label="Apellidos" autoComplete="family-name" placeholder="Apellidos" required maxLength={80} className="input" {...campo('apellidos')} />
+          </div>
+        </fieldset>
+        <div><label className="etiqueta" htmlFor="correo">Correo electrónico</label><input id="correo" type="email" autoComplete="email" placeholder="nombre@correo.com" required className="input" {...campo('correo')} /></div>
+        <div><label className="etiqueta" htmlFor="contrasena">Contraseña</label><input id="contrasena" type="password" placeholder="Mínimo 8 caracteres" required autoComplete="new-password" className="input" {...campo('contrasena')} /></div>
+        <fieldset>
           <legend className="etiqueta">Tipo de usuario</legend>
-          <div className="grid grid-cols-2 gap-2">
-            {[['CIUDADANO', '🙋 Ciudadano'], ['REFUGIO', '🏠 Refugio o fundación']].map(([valor, texto]) => (
-              <label key={valor} className={`cursor-pointer rounded-xl border px-3 py-3 text-center text-sm font-semibold transition ${datos.tipoCuenta === valor ? 'border-violeta bg-violeta/20' : 'border-borde text-suave hover:text-texto'}`}>
-                <input type="radio" name="tipoCuenta" value={valor} className="sr-only" checked={datos.tipoCuenta === valor} onChange={campo('tipoCuenta').onChange} />
+          <div className="grid grid-cols-2 gap-3">
+            {[['CIUDADANO', 'Ciudadano'], ['REFUGIO', 'Refugio']].map(([valor, texto]) => (
+              <label key={valor} className="figma-tipo-cuenta">
+                <input type="radio" name="tipoCuenta" value={valor} checked={datos.tipoCuenta === valor} onChange={campo('tipoCuenta').onChange} />
                 {texto}
               </label>
             ))}
           </div>
         </fieldset>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div><label className="etiqueta" htmlFor="nombres">Nombres</label><input id="nombres" required maxLength={80} className="input" {...campo('nombres')} /></div>
-          <div><label className="etiqueta" htmlFor="apellidos">Apellidos</label><input id="apellidos" required maxLength={80} className="input" {...campo('apellidos')} /></div>
-          <div><label className="etiqueta" htmlFor="correo">Correo electrónico</label><input id="correo" type="email" required className="input" {...campo('correo')} /></div>
-          <div><label className="etiqueta" htmlFor="telefono">Teléfono (opcional)</label><input id="telefono" inputMode="numeric" placeholder="09XXXXXXXX" className="input" {...campo('telefono')} /></div>
-          <div><label className="etiqueta" htmlFor="contrasena">Contraseña</label><input id="contrasena" type="password" required autoComplete="new-password" className="input" {...campo('contrasena')} /></div>
+        <div className="grid grid-cols-2 gap-3">
           <div><label className="etiqueta" htmlFor="confirmar">Confirmar contraseña</label><input id="confirmar" type="password" required autoComplete="new-password" className="input" {...campo('confirmar')} /></div>
+          <div><label className="etiqueta" htmlFor="telefono">Teléfono (opcional)</label><input id="telefono" inputMode="numeric" autoComplete="tel-national" placeholder="09XXXXXXXX" className="input" {...campo('telefono')} /></div>
         </div>
         <p className="text-xs text-suave">Mínimo 8 caracteres, con letras y números.</p>
         {esRefugio && (
@@ -134,9 +184,9 @@ export function Registro() {
           <input type="checkbox" className="mt-0.5 h-4 w-4 accent-violeta" checked={datos.aceptaPolitica} onChange={(e) => setDatos({ ...datos, aceptaPolitica: e.target.checked })} />
           <span>Acepto la <Link to="/privacidad" target="_blank" className="text-lavanda underline">política de tratamiento de datos personales</Link>, conforme a la Ley Orgánica de Protección de Datos Personales del Ecuador.</span>
         </label>
-        <button className="btn btn-primario w-full py-3" disabled={enviando}>{enviando ? 'Creando cuenta…' : 'Crear cuenta'}</button>
+        <button className="btn btn-primario w-full py-3" disabled={enviando}>{enviando ? 'Creando cuenta…' : 'Registrarme'}</button>
       </form>
-      <p className="mt-5 text-center text-sm text-suave">¿Ya tienes cuenta? <Link to="/login" className="font-semibold text-lavanda hover:underline">Inicia sesión</Link></p>
+      <p className="figma-alternar-acceso">¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></p>
     </Marco>
   );
 }

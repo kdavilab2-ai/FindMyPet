@@ -3,14 +3,16 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { formatoFechaHora } from './Comunes';
+import IconoFigma from './IconoFigma';
 
 const claseEnlace = ({ isActive }) =>
-  `rounded-lg px-3 py-2 text-sm font-medium transition ${isActive ? 'text-lavanda' : 'text-suave hover:text-texto'}`;
+  `figma-enlace-nav ${isActive ? 'activo' : ''}`;
 
 export function Logo({ grande = false }) {
+  if (grande) return <span className="flex items-center gap-2 text-3xl font-extrabold"><IconoFigma nombre="marca" /> <span>Find<span className="text-violeta">MyPet</span></span></span>;
   return (
-    <span className={`flex items-center gap-2 font-extrabold ${grande ? 'text-3xl' : 'text-xl'}`}>
-      <img src="/favicon.svg" alt="" className={grande ? 'h-11 w-11' : 'h-8 w-8'} />
+    <span className="figma-marca">
+      <IconoFigma nombre="marca" />
       <span>Find <span className="text-violeta">MyPet</span></span>
     </span>
   );
@@ -115,30 +117,30 @@ function MenuUsuario() {
   );
 }
 
-export default function Navbar() {
+export default function Navbar({ cabeceraPropia = false }) {
   const { usuario } = useAuth();
   return (
-    <header className="sticky top-0 z-30 border-b border-borde bg-fondo/90 backdrop-blur">
-      <nav className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3">
+    <header className={`figma-cabecera ${cabeceraPropia ? 'hidden md:block' : ''}`}>
+      <nav className="figma-nav" aria-label="Navegación superior">
         <Link to="/" aria-label="FindMyPet, inicio"><Logo /></Link>
-        <div className="ml-6 hidden gap-1 md:flex">
+        <div className="figma-enlaces-nav">
           <NavLink to="/" end className={claseEnlace}>Inicio</NavLink>
           <NavLink to="/perdidas" className={claseEnlace}>Perdidas</NavLink>
           <NavLink to="/halladas" className={claseEnlace}>Halladas</NavLink>
           <NavLink to="/adopcion" className={claseEnlace}>Adopción</NavLink>
           {usuario && <NavLink to="/mis-reportes" className={claseEnlace}>Mis reportes</NavLink>}
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="figma-acciones-nav">
           {usuario ? (
             <>
-              <Link to="/reportar" className="btn btn-primario hidden md:inline-flex">+ Reportar</Link>
+              <Link to="/reportar" className="btn btn-primario figma-reportar-nav">+ Reportar</Link>
               <Notificaciones />
               <MenuUsuario />
             </>
           ) : (
             <>
-              <Link to="/login" className="btn btn-secundario">Ingresar</Link>
-              <Link to="/registro" className="btn btn-primario hidden sm:inline-flex">Crear cuenta</Link>
+              <Link to="/login" className="figma-ingresar-nav">Ingresar</Link>
+              <Link to="/reportar" className="btn btn-primario figma-reportar-nav">+ Reportar</Link>
             </>
           )}
         </div>
@@ -151,19 +153,19 @@ export default function Navbar() {
 export function NavInferior() {
   const { pathname } = useLocation();
   const item = (ruta, icono, texto) => (
-    <Link to={ruta} className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] ${pathname === ruta ? 'text-lavanda' : 'text-suave'}`}>
-      <span className="text-lg" aria-hidden="true">{icono}</span>{texto}
+    <Link to={ruta} aria-current={pathname === ruta ? 'page' : undefined} className="figma-item-inferior">
+      <span><IconoFigma nombre={icono} /></span>{texto}
     </Link>
   );
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 flex items-end border-t border-borde bg-panel/95 backdrop-blur md:hidden" aria-label="Navegación principal">
-      {item('/', '⌂', 'Inicio')}
-      {item('/perdidas', '🔍', 'Perdidas')}
-      <Link to="/reportar" className="-mt-5 flex flex-1 justify-center" aria-label="Reportar mascota">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-violeta-oscuro to-violeta text-3xl font-light text-white shadow-lg shadow-violeta/40">+</span>
+    <nav className="figma-nav-inferior" aria-label="Navegación móvil">
+      {item('/', 'inicio', 'Inicio')}
+      {item('/perdidas', 'lupaMenu', 'Perdidas')}
+      <Link to="/reportar" className="figma-mas-nav" aria-label="Reportar mascota">
+        <span><IconoFigma nombre="mas" /></span>
       </Link>
-      {item('/halladas', '🐾', 'Halladas')}
-      {item('/adopcion', '♥', 'Adopción')}
+      {item('/halladas', 'pataMenu', 'Halladas')}
+      {item('/adopcion', 'adopcion', 'Adopción')}
     </nav>
   );
 }

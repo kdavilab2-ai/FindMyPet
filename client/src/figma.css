@@ -1,0 +1,257 @@
+/* Interfaces de FindMyPet (Figma). El tamaño de cada capa respeta su proporción original. */
+:root {
+  --superficie-figma: #1c1b36;
+  --campo-figma: #1a1935;
+  --nav-figma: #191831;
+  --accion-figma: #27234e;
+  --suave-figma: #a6a3c8;
+  --gradiente-figma: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%);
+}
+.figma-icono { display: inline-block; position: relative; flex: none; width: var(--ancho-icono); line-height: 0; }
+.figma-icono > img { position: absolute; height: auto; max-width: none; translate: -50% -50%; }
+.figma-pagina { width: min(1280px, calc(100% - 80px)); margin-inline: auto; padding-block: 30px 44px; }
+.figma-pagina .input, .figma-acceso .input { background: var(--campo-figma); min-height: 48px; }
+.figma-pagina .etiqueta, .figma-acceso .etiqueta { color: var(--color-lavanda); font-weight: 700; }
+.figma-pagina .input::placeholder, .figma-acceso .input::placeholder { color: var(--suave-figma); opacity: 1; }
+.figma-pagina .btn-primario, .figma-acceso .btn-primario, .figma-reportar-nav { background: var(--gradiente-figma); box-shadow: none; }
+
+.figma-cabecera { position: sticky; top: 0; z-index: 30; border-bottom: 1px solid var(--color-borde); background: var(--nav-figma); }
+.figma-nav { display: flex; align-items: stretch; justify-content: space-between; gap: 20px; min-height: 76px; max-width: 1920px; margin-inline: auto; padding-inline: clamp(20px, 3vw, 44px); }
+.figma-nav > a, .figma-acciones-nav { display: flex; align-items: center; }
+.figma-marca { display: inline-flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 700; white-space: nowrap; }
+.figma-enlaces-nav { display: flex; align-items: stretch; gap: clamp(14px, 2.5vw, 44px); }
+.figma-enlace-nav { position: relative; display: grid; place-items: center; color: var(--suave-figma); font-size: 15px; white-space: nowrap; }
+.figma-enlace-nav:hover { color: var(--color-texto); }
+.figma-enlace-nav.activo { color: var(--color-violeta); font-weight: 700; }
+.figma-enlace-nav.activo::after { position: absolute; right: 0; bottom: 0; left: 0; height: 3px; background: var(--color-violeta); content: ''; }
+.figma-acciones-nav { gap: 14px; }
+.figma-reportar-nav { min-width: 120px; white-space: nowrap; }
+.figma-ingresar-nav { color: var(--color-lavanda); font-size: 14px; font-weight: 650; }
+.figma-nav-inferior { display: none; }
+
+.figma-inicio {
+  display: grid;
+  grid-template-columns: minmax(0, 820fr) minmax(105px, 150fr) minmax(105px, 150fr) minmax(90px, 116fr);
+  grid-template-areas: 'titulo titulo titulo titulo' 'buscar especie estado zona' 'resumen resumen resumen resumen'
+    'recientes recientes recientes ver' 'resultados resultados resultados resultados';
+  column-gap: 14px;
+  align-items: center;
+  padding-top: 34px;
+}
+.figma-titulo-inicio { grid-area: titulo; margin-bottom: 24px; }
+.figma-titulo-inicio h1 { color: var(--color-lavanda); font-size: clamp(28px, 2.8vw, 40px); font-weight: 700; line-height: 1.14; letter-spacing: normal; }
+.figma-titulo-inicio p { margin-top: 6px; color: var(--suave-figma); }
+.figma-busqueda { position: relative; grid-area: buscar; min-width: 0; }
+.figma-busqueda .input { height: 54px; padding-inline: 21px 64px; }
+.figma-busqueda button { position: absolute; inset: 6px 6px 6px auto; display: grid; place-items: center; width: 50px; border-radius: 11px; background: var(--color-hallada); }
+.figma-busqueda button:hover { filter: brightness(1.12); }
+.figma-filtro { appearance: none; min-width: 0; height: 54px; padding-right: 27px; background: var(--campo-figma) url('/figma/flecha-12-165.svg') right 12px center no-repeat !important; }
+.figma-filtro-especie { grid-area: especie; }
+.figma-filtro-estado { grid-area: estado; }
+.figma-filtro-canton { grid-area: zona; }
+.figma-resumen { grid-area: resumen; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; margin-top: 26px; }
+.figma-contador { min-width: 0; min-height: 100px; display: flex; align-items: center; gap: 20px; padding: 15px 28px; border-radius: 18px; font-size: 16px; font-weight: 700; }
+.figma-contador:hover { filter: brightness(1.09); }
+.figma-contador-icono { display: grid; place-items: center; width: 56px; height: 56px; flex: none; border-radius: 50%; background: rgb(255 255 255 / .18); }
+.figma-contador-texto { display: grid; line-height: 1.22; }
+.figma-contador strong { margin-top: 2px; font-size: 28px; line-height: 1.15; }
+.figma-recientes-titulo { grid-area: recientes; margin-top: 27px; font-size: 22px; font-weight: 700; letter-spacing: normal; }
+.figma-ver-todas { grid-area: ver; justify-self: end; margin-top: 27px; color: var(--color-lavanda); font-size: 14px; font-weight: 700; }
+.figma-ver-todas:hover { text-decoration: underline; }
+.figma-resultados { grid-area: resultados; margin-top: 16px; min-width: 0; }
+.figma-tarjetas { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 20px; }
+.figma-tarjeta { position: relative; display: grid; align-content: start; min-width: 0; gap: 14px; padding: 14px; border: 1px solid var(--color-borde); border-radius: 19px; background: var(--superficie-figma); }
+.figma-tarjeta:hover { border-color: var(--color-violeta); }
+.figma-foto { display: grid; place-items: center; overflow: hidden; background: #e8edfe; border-radius: 13px; }
+.figma-foto > img { width: 100%; height: 100%; object-fit: cover; }
+.figma-tarjeta > .figma-foto { aspect-ratio: 277 / 160; }
+.figma-foto .figma-animal-gato { width: min(var(--ancho-icono),57%); }
+.figma-foto .figma-animal-perro { width: min(var(--ancho-icono),69%); }
+.figma-tipo { position: absolute; top: 25px; left: 25px; z-index: 1; width: fit-content; max-width: 100%; padding: 3px 11px; border-radius: 999px; color: white; background: var(--color-perdida); font-size: 11px; line-height: 1.15; font-weight: 700; }
+.figma-tipo-2 { color: #175dff; background: #dbe8ff; }
+.figma-tipo-3 { background: #22c55e; }
+.figma-tarjeta-texto { display: grid; gap: 3px; min-width: 0; padding-inline: 5px; }
+.figma-tarjeta-texto h3 { overflow-wrap: anywhere; font-size: 17px; font-weight: 700; letter-spacing: normal; }
+.figma-tarjeta-texto p { color: var(--suave-figma); font-size: 13px; overflow-wrap: anywhere; }
+.figma-lugar { display: flex; align-items: baseline; gap: 6px; }
+.figma-lugar .figma-icono { align-self: center; }
+.figma-ver-detalle { display: grid; place-items: center; min-height: 38px; margin: -2px 5px 0; border-radius: 11px; background: var(--accion-figma); font-size: 13px; font-weight: 700; }
+
+.figma-acceso { display: grid; min-height: 100dvh; grid-template-columns: 4fr 5fr; }
+.figma-marca-acceso { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; background: linear-gradient(150deg, #2a1f5c, var(--color-fondo) 84%); text-align: center; }
+.figma-marca-acceso-nombre { margin-top: 20px; color: white; font-size: 46px; font-weight: 700; }
+.figma-marca-acceso-nombre span { color: var(--color-violeta); }
+.figma-lema { margin-top: 3px; color: var(--color-lavanda); font-size: 17px; }
+.figma-marca-acceso dl { display: flex; justify-content: space-around; width: min(100%,510px); margin-top: 52px; gap: 14px; }
+.figma-marca-acceso dl div { display: flex; flex-direction: column-reverse; }
+.figma-marca-acceso dt { font-size: 13px; color: var(--suave-figma); }
+.figma-marca-acceso dd { color: white; font-size: 30px; font-weight: 700; }
+.figma-acceso-contenido { display: grid; place-items: center; padding: 34px 22px; min-width: 0; }
+.figma-acceso-panel { width: min(100%,480px); padding: 36px 48px 56px; border: 1px solid var(--color-borde); border-radius: 22px; background: var(--superficie-figma); }
+.figma-acceso-panel h1 { color: white; text-align: center; font-size: 30px; font-weight: 700; letter-spacing: normal; }
+.figma-acceso-subtitulo { margin-top: 5px; text-align: center; color: var(--suave-figma); font-size: 14px; }
+.figma-campos-acceso { display: grid; gap: 13px; margin-top: 27px; }
+.figma-campos-acceso > button { min-height: 52px; }
+.figma-recuperar { text-align: right; font-size: 13px; }
+.figma-recuperar a,.figma-alternar-acceso { color: var(--color-lavanda); font-weight: 650; }
+.figma-recuperar a:hover,.figma-alternar-acceso a:hover { text-decoration: underline; }
+.figma-alternar-acceso { margin-top: 39px; text-align: center; font-size: 14px; }
+.figma-tipo-cuenta { display: flex; align-items: center; min-height: 48px; gap: 9px; padding: 10px 13px; border: 1px solid var(--color-borde); border-radius: 12px; background: var(--campo-figma); color: white; cursor: pointer; font-size: 14px; font-weight: 700; }
+.figma-tipo-cuenta input { accent-color: var(--color-violeta); }
+.figma-tipo-cuenta:has(input:checked) { border-color: var(--color-violeta); background: var(--accion-figma); }
+.figma-registro-movil { display: none; }
+.figma-volver { display: none; }
+
+.figma-encabezado { position: relative; margin-bottom: 18px; }
+.figma-encabezado h1 { color: var(--color-lavanda); font-size: 34px; font-weight: 700; letter-spacing: normal; line-height: 1.15; }
+.figma-encabezado p { margin-top: 7px; color: var(--suave-figma); font-size: 15px; }
+.figma-selector-tipo { display: inline-grid; grid-template-columns: repeat(3,minmax(0,1fr)); min-width: min(100%,420px); padding: 4px; border: 1px solid var(--color-borde); border-radius: 14px; background: var(--campo-figma); }
+.figma-selector-tipo .btn { min-width: 0; }
+.figma-formulario-reporte { display: grid; grid-template-columns: minmax(0,1.92fr) minmax(240px,1fr); gap: 22px 30px; margin-top: 22px; }
+.figma-error-reporte { grid-column: 1 / -1; }
+.figma-campos-reporte { display: grid; gap: 16px; padding: clamp(20px,2.5vw,36px); background: var(--superficie-figma); }
+.figma-rasgos-reporte { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px 24px; }
+.figma-nombre-reporte { grid-area: nombre; }
+.figma-especie-reporte { grid-area: especie; }
+.figma-raza-reporte { grid-area: raza; }
+.figma-tamano-reporte { grid-area: tamano; }
+.figma-color-reporte { grid-area: color; }
+.figma-rasgos-reporte { grid-template-areas: 'nombre especie' 'raza color' 'tamano tamano'; }
+.figma-detalles-campo summary { list-style: none; padding-right: 28px; background: var(--campo-figma) url('/figma/flecha-12-165.svg') right 13px center no-repeat !important; cursor: pointer; }
+.figma-detalles-campo summary::-webkit-details-marker { display: none; }
+.figma-acciones-reporte { display: flex; justify-content: flex-end; gap: 14px; }
+.figma-acciones-reporte .btn { min-width: 138px; }
+.figma-adjuntos-reporte { display: grid; align-content: start; gap: 22px; }
+.figma-carga-reporte { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 330px; padding: 16px; border: 1px dashed var(--color-violeta); border-radius: 18px; background: var(--superficie-figma); text-align: center; color: var(--color-lavanda); cursor: pointer; }
+.figma-carga-reporte:hover,.figma-carga-reporte:focus-within { border-color: var(--color-lavanda); background: var(--accion-figma); }
+.figma-carga-reporte > .figma-icono { width: 64px; margin-bottom: 14px; }
+.figma-ayuda-carga { font-size: 13px; color: var(--suave-figma); }
+.figma-consejo-reporte { padding: 23px 28px; background: var(--superficie-figma); }
+
+.figma-filtros-reportes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+.figma-filtros-reportes button { padding: 8px 18px; border: 1px solid var(--color-borde); border-radius: 999px; background: var(--superficie-figma); color: var(--suave-figma); font-size: 13px; font-weight: 700; }
+.figma-filtros-reportes button[aria-pressed='true'] { border-color: var(--color-violeta-oscuro); background: var(--color-violeta-oscuro); color: white; }
+.figma-tabla-reportes ul { display: grid; gap: 10px; }
+.figma-cabecera-reportes,.figma-fila-reporte { display: grid; grid-template-columns: minmax(120px,2.25fr) minmax(72px,1fr) minmax(90px,.9fr) minmax(108px,1.25fr) minmax(126px,1fr); align-items: center; gap: 12px; padding: 10px 19px; }
+.figma-cabecera-reportes { min-height: 52px; margin-bottom: 12px; border-radius: 13px; background: var(--accion-figma); color: var(--color-lavanda); font-size: 13px; font-weight: 700; }
+.figma-cabecera-reportes > :first-child { padding-left: 100px; }
+.figma-fila-reporte { grid-template-areas: 'mascota tipo fecha estado acciones'; min-height: 82px; border: 1px solid var(--color-borde); border-radius: 16px; background: var(--superficie-figma); }
+.figma-mascota-reporte { grid-area: mascota; display: flex; align-items: center; gap: clamp(12px,2.8vw,40px); font-weight: 700; overflow-wrap: anywhere; }
+.figma-mascota-reporte:hover { color: var(--color-lavanda); }
+.figma-mascota-reporte .figma-foto { width: 60px; height: 60px; flex: none; }
+.figma-reporte-tipo,.figma-reporte-fecha { color: var(--suave-figma); font-size: 14px; }
+.figma-reporte-tipo { grid-area: tipo; }
+.figma-reporte-fecha { grid-area: fecha; }
+.figma-reporte-estado { grid-area: estado; min-width: 0; }
+.figma-estado-pill { cursor: pointer; max-width: 100%; appearance: none; padding: 3px 9px; border-radius: 20px; background: #ffcc15; color: #1f1b2e; font-size: 11px; font-weight: 750; }
+.figma-estado-pill:is([data-estado='2'],[data-estado='4'],[data-estado='5'],[data-estado='6']) { background: #22c55e; color: #111b16; }
+.figma-estado-pill option { background: var(--campo-figma); color: var(--color-texto); }
+.figma-reporte-acciones { grid-area: acciones; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.figma-reporte-acciones > * { display: grid; place-items: center; min-height: 36px; border-radius: 10px; border: 1px solid transparent; background: var(--accion-figma); color: var(--color-lavanda); font-size: 13px; font-weight: 700; }
+.figma-reporte-acciones > button { border-color: var(--color-perdida); background: none; color: var(--color-perdida); }
+.figma-reporte-acciones > :hover { background: var(--color-tarjeta); }
+.figma-reporte-coincidencias { grid-column: 1 / -1; width: fit-content; border-radius: 999px; padding: 4px 10px; background: var(--accion-figma); color: var(--color-lavanda); font-size: 12px; }
+
+@media (min-width: 768px) and (max-width: 1050px) {
+  .figma-nav { gap: 12px; }
+  .figma-marca { font-size: 21px; }
+  .figma-enlaces-nav { gap: 12px; }
+  .figma-enlace-nav { font-size: 13px; }
+  .figma-acciones-nav { gap: 6px; }
+  .figma-reportar-nav { min-width: auto; }
+  .figma-pagina { width: calc(100% - 48px); }
+  .figma-tarjetas { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .figma-cabecera-reportes > :first-child { padding-left: 74px; }
+}
+@media (max-width: 767px) {
+  .figma-pagina { width: calc(100% - 40px); padding-block: 14px 34px; }
+  .figma-cabecera { position: relative; border: 0; background: var(--color-fondo); }
+  .figma-nav { min-height: 66px; gap: 8px; padding-inline: 20px; }
+  .figma-marca { gap: 8px; font-size: clamp(18px,5.5vw,22px); }
+  .figma-marca .figma-icono { width: 26px; }
+  .figma-enlaces-nav { display: none; }
+  .figma-acciones-nav { gap: 5px; }
+  .figma-acciones-nav > div > button { padding: 3px; font-size: 16px; }
+  .figma-reportar-nav { min-width: 0; min-height: 42px; padding-inline: 12px; font-size: 13px; }
+  .figma-ingresar-nav { font-size: 12px; padding: 3px; }
+  .figma-con-navegacion { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+  .figma-nav-inferior { position: fixed; inset: auto 0 0; z-index: 30; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); align-items: center; min-height: 63px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--color-borde); background: var(--nav-figma); }
+  .figma-item-inferior { display: grid; justify-items: center; gap: 4px; min-width: 0; padding: 4px 1px; color: var(--suave-figma); font-size: 11px; }
+  .figma-item-inferior > span { display: grid; place-items: center; height: 24px; }
+  .figma-item-inferior[aria-current='page'] { color: var(--color-violeta); font-weight: 700; }
+  .figma-mas-nav { display: grid; justify-items: center; margin-top: -20px; }
+  .figma-mas-nav > span { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--gradiente-figma); }
+
+  .figma-inicio { grid-template-columns: minmax(0,1fr) minmax(72px,92px) minmax(70px,84px); column-gap: 6px; grid-template-areas: 'titulo titulo titulo' 'buscar buscar buscar' 'resumen resumen resumen' 'recientes especie estado' 'resultados resultados resultados' 'ver ver ver'; padding-top: 6px; }
+  .figma-titulo-inicio { margin-bottom: 12px; }
+  .figma-titulo-inicio h1 { font-size: clamp(21px,6.15vw,24px); }
+  .figma-titulo-inicio p { margin-top: 3px; font-size: 13px; }
+  .figma-busqueda .input { height: 46px; min-height: 46px; padding-inline: 14px 49px; }
+  .figma-busqueda button { inset: 4px 4px 4px auto; width: 40px; }
+  .figma-resumen { gap: 7px; margin-top: 16px; }
+  .figma-contador { min-height: 82px; justify-content: center; flex-direction: column; gap: 4px; padding: 7px 3px; text-align: center; font-size: clamp(10px,2.82vw,11px); border-radius: 14px; }
+  .figma-contador-icono { width: 24px; height: 24px; background: transparent; }
+  .figma-contador-icono .figma-icono { width: 21px; }
+  .figma-contador strong { margin-top: 2px; font-size: 17px; }
+  .figma-recientes-titulo { margin-top: 15px; font-size: clamp(14px,4.1vw,16px); }
+  .figma-filtro { height: 35px; min-height: 35px !important; margin-top: 15px; padding: 5px 19px 5px 8px; font-size: 12px; background-position: right 7px center !important; }
+  .figma-filtro-canton { display: none; }
+  .figma-ver-todas { margin-top: 16px; }
+  .figma-resultados { margin-top: 13px; }
+  .figma-tarjetas { grid-template-columns: minmax(0,1fr); gap: 11px; }
+  .figma-tarjeta { grid-template-columns: 76px minmax(0,1fr); grid-template-areas: 'foto tipo' 'foto texto'; gap: 3px 14px; min-height: 104px; padding: 12px; border-radius: 17px; }
+  .figma-tarjeta > .figma-foto { grid-area: foto; align-self: center; width: 76px; height: 76px; }
+  .figma-tipo { position: static; grid-area: tipo; align-self: end; }
+  .figma-tarjeta-texto { grid-area: texto; padding: 0; }
+  .figma-tarjeta-texto h3 { font-size: 16px; }
+  .figma-tarjeta-texto p { font-size: 12px; }
+  .figma-ver-detalle { display: none; }
+
+  .figma-acceso { display: flex; flex-direction: column; }
+  .figma-acceso-contenido { display: block; padding: 0 24px 32px; }
+  .figma-marca-acceso { background: transparent; padding: 44px 16px 0; }
+  .figma-marca-acceso .figma-icono { width: 121px; }
+  .figma-marca-acceso dl,.figma-acceso-panel .figma-acceso-subtitulo { display: none; }
+  .figma-marca-acceso-nombre { margin-top: 12px; font-size: 34px; }
+  .figma-lema { color: var(--suave-figma); font-size: 14px; }
+  .figma-acceso-panel { width: min(100%, 480px); margin-inline: auto; padding: 0; border: none; background: none; }
+  .figma-login h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .figma-campos-acceso { gap: 14px; margin-top: 24px; }
+  .figma-recuperar { padding-block: 6px; }
+  .figma-alternar-acceso { margin-top: 25px; }
+  .figma-registro > .figma-marca-acceso { display: none; }
+  .figma-registro-movil { display: grid; grid-template-columns: 36px minmax(0,1fr) 36px; align-items: center; row-gap: 17px; margin-block: 16px 12px; font-size: 18px; font-weight: 700; }
+  .figma-registro-movil > span:not(.figma-icono) { text-align: center; }
+  .figma-registro-movil > .figma-icono { grid-column: 1 / -1; justify-self: center; width: 63px; }
+  .figma-registro .figma-acceso-panel h1 { color: var(--color-lavanda); font-size: 22px; }
+  .figma-volver { position: absolute; inset: 0 auto auto -6px; display: grid; place-items: center; width: 36px; height: 27px; }
+  .figma-registro-movil .figma-volver { position: static; margin-left: -6px; }
+  .figma-encabezado { margin-bottom: 16px; padding: 3px 32px; }
+  .figma-encabezado h1 { color: white; text-align: center; font-size: 18px; }
+  .figma-encabezado p { display: none; }
+
+  .figma-selector-tipo { width: 100%; min-width: 0; }
+  .figma-selector-tipo .btn { padding: 8px 4px; font-size: 13px; }
+  .figma-formulario-reporte { display: flex; flex-direction: column; gap: 14px; margin-top: 15px; }
+  .figma-error-reporte { order: -2; }
+  .figma-adjuntos-reporte { display: contents; }
+  .figma-adjuntos-reporte > :first-child { order: -1; }
+  .figma-carga-reporte { min-height: 120px; }
+  .figma-carga-reporte > .figma-icono { width: 45px; margin-bottom: 0; }
+  .figma-ayuda-carga { display: none; }
+  .figma-consejo-reporte { padding: 12px 16px; }
+  .figma-campos-reporte { padding: 0; border: 0; background: transparent; }
+  .figma-rasgos-reporte { gap: 12px; grid-template-areas: 'nombre nombre' 'especie color' 'raza tamano'; }
+  .figma-acciones-reporte { flex-wrap: wrap; }
+  .figma-acciones-reporte .btn-primario { order: -1; width: 100%; min-height: 52px; }
+  .figma-filtros-reportes { gap: 5px; margin-bottom: 16px; }
+  .figma-filtros-reportes button { padding: 7px 10px; font-size: 12px; }
+  .figma-cabecera-reportes { display: none; }
+  .figma-fila-reporte { grid-template-columns: 64px auto minmax(0,1fr); grid-template-areas: 'foto estado estado' 'foto nombre nombre' 'foto tipo fecha' 'acciones acciones acciones'; gap: 2px 8px; padding: 12px; }
+  .figma-mascota-reporte { display: contents; }
+  .figma-mascota-reporte .figma-foto { grid-area: foto; width: 64px; height: 64px; align-self: start; }
+  .figma-mascota-reporte > span:not(.figma-foto) { grid-area: nombre; }
+  .figma-mascota-reporte:focus-visible > span:not(.figma-foto) { outline: 2px solid var(--color-lavanda); }
+  .figma-reporte-tipo,.figma-reporte-fecha { font-size: 12px; }
+  .figma-reporte-acciones { gap: 14px; margin-top: 9px; }
+}

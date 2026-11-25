@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'leaflet/dist/leaflet.css';
+@import './figma.css';
 
 /* Guía de estilo de Figma (sección 2.1 del plan): tema oscuro violeta, tipografía Inter */
 @theme {

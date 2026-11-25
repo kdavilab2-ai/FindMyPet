@@ -31,10 +31,13 @@ function SubirAlCambiar() {
 }
 
 export default function App() {
+  const { pathname } = useLocation();
+  const acceso = pathname === '/login' || pathname === '/registro';
+  const cabeceraPropia = pathname === '/reportar' || pathname === '/mis-reportes' || /^\/publicaciones\/[^/]+\/editar$/.test(pathname);
   return (
-    <div className="flex min-h-screen flex-col pb-16 md:pb-0">
+    <div className={`flex min-h-screen flex-col ${acceso ? '' : 'figma-con-navegacion'}`}>
       <SubirAlCambiar />
-      <Navbar />
+      {!acceso && <Navbar cabeceraPropia={cabeceraPropia} />}
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<Inicio />} />
@@ -59,10 +62,10 @@ export default function App() {
           <Route path="*" element={<NoEncontrada />} />
         </Routes>
       </main>
-      <footer className="hidden border-t border-borde py-6 text-center text-xs text-suave md:block">
+      <footer className={`hidden border-t border-borde py-6 text-center text-xs text-suave ${acceso ? '' : 'md:block'}`}>
         FindMyPet · Grupo 4 · Construcción de Software, Universidad Estatal de Milagro · <Link to="/privacidad" className="hover:text-texto">Privacidad</Link>
       </footer>
-      <NavInferior />
+      {!acceso && <NavInferior />}
     </div>
   );
 }

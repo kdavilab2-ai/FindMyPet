@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { useCatalogos } from '../context/CatalogosContext';
 import { Alerta, Cargando } from '../components/Comunes';
 import SelectorUbicacion, { ubicacionDesdeApi } from '../components/SelectorUbicacion';
+import EncabezadoFigma from '../components/EncabezadoFigma';
+import IconoFigma from '../components/IconoFigma';
 
 const hoy = () => {
   const d = new Date();
@@ -28,7 +30,10 @@ export default function Reportar() {
   const { catalogos } = useCatalogos();
   const puedeAdopcion = refugioAutorizado || esAdmin;
 
-  const [tipo, setTipo] = useState(Number(params.get('tipo')) || 1);
+  const [tipo, setTipo] = useState(() => {
+    const tipoSolicitado = Number(params.get('tipo'));
+    return tipoSolicitado === 2 || (tipoSolicitado === 3 && puedeAdopcion) ? tipoSolicitado : 1;
+  });
   const [datos, setDatos] = useState({
     nombreAnimal: '', idEspecie: '1', idRaza: '', idTamano: '', colores: [], descripcion: '', fechaEvento: hoy(),
     estadoSalud: '', telefono: '', whatsapp: usuario?.telefono || '', correoContacto: '',
@@ -109,21 +114,22 @@ export default function Reportar() {
   };
 
   if (!catalogos || cargando) return <Cargando />;
-  const pestana = PESTANAS.find((p) => p.tipo === tipo);
+  const pestana = PESTANAS.find((p) => p.tipo === tipo) || PESTANAS[0];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
-      <h1 className="titulo-pagina">{id ? 'Editar publicación' : 'Reportar mascota'}</h1>
-      <p className="mt-1 text-sm text-suave">Completa los datos para difundir el caso.</p>
+    <div className="figma-pagina figma-reportar">
+      <EncabezadoFigma titulo={id ? 'Editar publicación' : 'Reportar mascota'} volverA={id ? '/mis-reportes' : '/'}>
+        Completa los datos para difundir el caso.
+      </EncabezadoFigma>
 
       {!id && (
-        <div className="mt-5 inline-flex rounded-xl border border-borde bg-panel p-1" role="tablist">
+        <div className="figma-selector-tipo" role="group" aria-label="Tipo de reporte">
           {PESTANAS.map((p) => (
-            <button key={p.tipo} type="button" role="tab" aria-selected={tipo === p.tipo}
+            <button key={p.tipo} type="button" aria-pressed={tipo === p.tipo}
               disabled={p.tipo === 3 && !puedeAdopcion}
               title={p.tipo === 3 && !puedeAdopcion ? 'Solo refugios autorizados' : undefined}
               onClick={() => setTipo(p.tipo)}
-              className={`rounded-lg px-5 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${tipo === p.tipo ? 'bg-violeta text-white' : 'text-suave hover:text-texto'}`}>
+              className={`btn ${tipo === p.tipo ? 'btn-primario' : 'text-suave hover:text-texto'}`}>
               {p.texto}
             </button>
           ))}
@@ -131,47 +137,52 @@ export default function Reportar() {
       )}
       {!id && !puedeAdopcion && <p className="mt-2 text-xs text-suave">Las adopciones las publican refugios y fundaciones autorizados.</p>}
 
-      <form onSubmit={enviar} className="mt-5 grid gap-5 lg:grid-cols-[1fr_340px]">
-        <div className="panel space-y-5 p-5 sm:p-6">
-          <Alerta>{error}</Alerta>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
+      <form onSubmit={enviar} className="figma-formulario-reporte">
+        {error && <div className="figma-error-reporte"><Alerta>{error}</Alerta></div>}
+        <div className="panel figma-campos-reporte">
+          <div className="figma-rasgos-reporte">
+            <div className="figma-nombre-reporte">
               <label className="etiqueta" htmlFor="nombre">Nombre de la mascota{tipo === 2 && ' (si lo sabe)'}</label>
               <input id="nombre" className="input" maxLength={60} required={tipo !== 2} placeholder={tipo === 2 ? 'Sin nombre' : 'Ej. Toby'} {...campo('nombreAnimal')} />
             </div>
-            <div>
+            <div className="figma-especie-reporte">
               <label className="etiqueta" htmlFor="especie">Especie</label>
               <select id="especie" className="input" value={datos.idEspecie} onChange={(e) => setDatos({ ...datos, idEspecie: e.target.value, idRaza: '' })}>
                 {catalogos.especies.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
               </select>
             </div>
-            <div>
+            <div className="figma-raza-reporte">
               <label className="etiqueta" htmlFor="raza">Raza</label>
               <select id="raza" className="input" {...campo('idRaza')}>
                 <option value="">No sé</option>
                 {razas.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
               </select>
             </div>
-            <div>
+            <div className="figma-tamano-reporte">
               <label className="etiqueta" htmlFor="tamano">Tamaño</label>
               <select id="tamano" className="input" {...campo('idTamano')}>
                 <option value="">No sé</option>
                 {catalogos.tamanos.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
               </select>
             </div>
-          </div>
-
-          <fieldset>
-            <legend className="etiqueta">Color (puede elegir varios)</legend>
-            <div className="flex flex-wrap gap-2">
-              {catalogos.colores.map((c) => (
-                <button key={c.id} type="button" onClick={() => alternarColor(c.id)} aria-pressed={datos.colores.includes(c.id)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition ${datos.colores.includes(c.id) ? 'border-violeta bg-violeta/25 text-texto' : 'border-borde text-suave hover:text-texto'}`}>
-                  {c.nombre}
-                </button>
-              ))}
+            <div className="figma-color-reporte">
+              <span className="etiqueta">Color</span>
+              <details className="figma-detalles-campo">
+                <summary className="input" aria-label="Colores de la mascota">
+                  {catalogos.colores.filter((color) => datos.colores.includes(color.id)).map((color) => color.nombre).join(', ') || 'Seleccionar colores'}
+                </summary>
+                <fieldset className="mt-2 flex flex-wrap gap-2">
+                  <legend className="sr-only">Colores (puede elegir varios)</legend>
+                  {catalogos.colores.map((c) => (
+                    <button key={c.id} type="button" onClick={() => alternarColor(c.id)} aria-pressed={datos.colores.includes(c.id)}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${datos.colores.includes(c.id) ? 'border-violeta bg-violeta/25 text-texto' : 'border-borde text-suave hover:text-texto'}`}>
+                      {c.nombre}
+                    </button>
+                  ))}
+                </fieldset>
+              </details>
             </div>
-          </fieldset>
+          </div>
 
           {tipo === 3 ? (
             <div>
@@ -182,7 +193,13 @@ export default function Reportar() {
             <>
               <div>
                 <span className="etiqueta">{tipo === 1 ? 'Último lugar donde fue vista' : 'Lugar donde la encontraste'}</span>
-                <SelectorUbicacion valor={ubicacion} alCambiar={setUbicacion} />
+                <details className="figma-detalles-campo" onInvalid={(e) => { e.currentTarget.open = true; }}>
+                  <summary className="input">
+                    {[catalogos.sectores.find((s) => s.id === Number(ubicacion.idSector))?.nombre,
+                      catalogos.cantones.find((c) => c.id === Number(ubicacion.idCanton))?.nombre].filter(Boolean).join(', ') || 'Seleccionar ubicación'}
+                  </summary>
+                  <div className="mt-3"><SelectorUbicacion valor={ubicacion} alCambiar={setUbicacion} /></div>
+                </details>
               </div>
               <div className="sm:w-1/2">
                 <label className="etiqueta" htmlFor="fecha">{tipo === 1 ? 'Fecha de la desaparición' : 'Fecha del hallazgo'}</label>
@@ -205,22 +222,22 @@ export default function Reportar() {
             </div>
           </fieldset>
 
-          <div className="flex justify-end gap-3 border-t border-borde pt-5">
+          <div className="figma-acciones-reporte">
             <button type="button" className="btn btn-secundario" onClick={() => navegar(-1)}>Cancelar</button>
-            <button className="btn btn-primario px-8" disabled={enviando}>{enviando ? (catalogos.iaDisponible ? 'Validando fotos con IA…' : 'Publicando…') : id ? 'Guardar cambios' : 'Publicar'}</button>
+            <button className="btn btn-primario px-8" disabled={enviando}>{enviando ? (catalogos.iaDisponible ? 'Validando fotos con IA…' : 'Publicando…') : id ? 'Guardar cambios' : 'Publicar reporte'}</button>
           </div>
         </div>
 
-        <aside className="space-y-4">
-          <div className="panel p-4">
+        <aside className="figma-adjuntos-reporte">
+          <div>
             <label
-              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-violeta/50 px-4 py-8 text-center transition hover:bg-violeta/5"
+              className="figma-carga-reporte"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => { e.preventDefault(); agregarArchivos([...e.dataTransfer.files]); }}
             >
-              <span className="text-4xl text-violeta" aria-hidden="true">🐾</span>
-              <span className="font-semibold">Agregar fotos ({totalArchivos} de {MAX})</span>
-              <span className="text-xs text-suave">Arrastra o haz clic · JPG, PNG o WEBP hasta 5 MB · video MP4 hasta 20 MB</span>
+              <IconoFigma nombre="pataSubida" />
+              <span className="font-semibold">Agregar fotos {totalArchivos ? `(${totalArchivos} de ${MAX})` : '(1 a 5)'}</span>
+              <span className="figma-ayuda-carga">Arrastra o haz clic para subir</span>
               <input type="file" multiple accept={TIPOS_PERMITIDOS.join(',')} className="sr-only" onChange={(e) => { agregarArchivos([...e.target.files]); e.target.value = ''; }} />
             </label>
             {(existentes.length > 0 || nuevos.length > 0) && (
@@ -235,7 +252,7 @@ export default function Reportar() {
             )}
             {catalogos.iaDisponible && <p className="mt-3 text-xs text-suave">🤖 La IA verificará que cada foto muestre un animal (RF-22).</p>}
           </div>
-          <div className="rounded-2xl border border-ambar/30 bg-ambar/5 p-4">
+          <div className="panel figma-consejo-reporte">
             <p className="font-bold text-ambar">Consejo</p>
             <p className="mt-1 text-sm text-suave">{pestana.consejo}</p>
           </div>
