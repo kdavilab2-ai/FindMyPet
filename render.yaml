@@ -1,0 +1,23 @@
+# Despliegue del backend en Render (Blueprint). El frontend va en Vercel y la base de datos en Neon.
+services:
+  - type: web
+    name: findmypet-api
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run start:prod
+    healthCheckPath: /api/salud
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

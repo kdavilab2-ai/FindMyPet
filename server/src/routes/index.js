@@ -1,0 +1,93 @@
+const { Router } = require('express');
+const rateLimit = require('express-rate-limit');
+const a = require('../lib/async');
+const { recibirArchivos } = require('../lib/archivos');
+const { verificarToken, sesionOpcional, verificarRol } = require('../middlewares/auth');
+const { ROL } = require('../lib/constantes');
+
+const auth = require('../controllers/auth.controller');
+const perfil = require('../controllers/perfil.controller');
+const catalogos = require('../controllers/catalogos.controller');
+const publicaciones = require('../controllers/publicaciones.controller');
+const coincidencias = require('../controllers/coincidencias.controller');
+const notificaciones = require('../controllers/notificaciones.controller');
+const refugios = require('../controllers/refugios.controller');
+const donaciones = require('../controllers/donaciones.controller');
+const admin = require('../controllers/admin.controller');
+const multimedia = require('../controllers/multimedia.controller');
+
+const router = Router();
+
+// Límite de intentos para evitar ataques de fuerza bruta en el inicio de sesión
+const limiteAuth = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
+  message: { error: 'Demasiados intentos. Espere unos minutos e intente de nuevo' },
+});
+
+router.get('/salud', (req, res) => res.json({ ok: true }));
+router.get('/catalogos', a(catalogos.listar));
+router.get('/multimedia/:id', a(multimedia.obtener));
+
+// Autenticación (RF-01, RF-02, RF-18)
+router.post('/auth/registro', limiteAuth, a(auth.registro));
+router.post('/auth/login', limiteAuth, a(auth.login));
+router.post('/auth/olvide', limiteAuth, a(auth.olvideContrasena));
+router.post('/auth/restablecer', limiteAuth, a(auth.restablecerContrasena));
+router.post('/auth/renovar', verificarToken, a(auth.renovar));
+router.get('/auth/yo', verificarToken, a(auth.yo));
+
+// Perfil y alertas (RF-03, RF-26)
+router.get('/perfil', verificarToken, a(perfil.obtener));
+router.put('/perfil', verificarToken, a(perfil.actualizar));
+router.put('/perfil/contrasena', verificarToken, a(perfil.cambiarContrasena));
+router.put('/perfil/alertas', verificarToken, a(perfil.guardarAlerta));
+router.delete('/perfil/alertas', verificarToken, a(perfil.quitarAlerta));
+
+// Publicaciones (RF-04 a RF-08, RF-12 a RF-16, RF-20, RF-21)
+router.get('/publicaciones', a(publicaciones.listar));
+router.get('/publicaciones/resumen', a(publicaciones.resumen));
+router.get('/publicaciones/mias', verificarToken, a(publicaciones.misPublicaciones));
+router.get('/publicaciones/:id', sesionOpcional, a(publicaciones.obtener));
+router.post('/publicaciones', verificarToken, recibirArchivos, a(publicaciones.crear));
+router.put('/publicaciones/:id', verificarToken, recibirArchivos, a(publicaciones.actualizar));
+router.patch('/publicaciones/:id/estado', verificarToken, a(publicaciones.cambiarEstado));
+router.delete('/publicaciones/:id', verificarToken, a(publicaciones.eliminar));
+router.post('/publicaciones/:id/interes', verificarToken, a(publicaciones.interesAdopcion));
+
+// Coincidencias con IA (RF-09, RF-10, RF-11)
+router.get('/coincidencias', verificarToken, a(coincidencias.misCoincidencias));
+router.patch('/coincidencias/:id', verificarToken, a(coincidencias.responder));
+router.post('/coincidencias/analizar/:id', verificarToken, a(coincidencias.analizar));
+
+// Notificaciones
+router.get('/notificaciones', verificarToken, a(notificaciones.listar));
+router.patch('/notificaciones/leidas', verificarToken, a(notificaciones.marcarTodas));
+router.patch('/notificaciones/:id/leida', verificarToken, a(notificaciones.marcarLeida));
+
+// Refugios, valoraciones y donaciones (RF-24, RF-25)
+router.get('/refugios', a(refugios.listar));
+router.get('/refugios/:id', sesionOpcional, a(refugios.obtener));
+router.post('/refugios/:id/valoraciones', verificarToken, verificarRol(ROL.CIUDADANO), a(refugios.valorar));
+router.get('/donaciones', a(donaciones.listarAbiertas));
+router.get('/donaciones/mias', verificarToken, verificarRol(ROL.REFUGIO), a(donaciones.misSolicitudes));
+router.post('/donaciones', verificarToken, verificarRol(ROL.REFUGIO), a(donaciones.crear));
+router.patch('/donaciones/:id', verificarToken, verificarRol(ROL.REFUGIO), a(donaciones.cambiarEstado));
+router.post('/donaciones/:id/aportes', verificarToken, a(donaciones.aportar));
+
+// Administración (RF-17, RF-19, RNF-22)
+const soloAdmin = [verificarToken, verificarRol(ROL.ADMIN)];
+router.get('/admin/estadisticas', soloAdmin, a(admin.estadisticas));
+router.get('/admin/usuarios', soloAdmin, a(admin.usuarios));
+router.patch('/admin/usuarios/:id/estado', soloAdmin, a(admin.cambiarEstadoCuenta));
+router.patch('/admin/refugios/:id', soloAdmin, a(admin.autorizarRefugio));
+router.get('/admin/publicaciones', soloAdmin, a(admin.publicaciones));
+router.delete('/admin/publicaciones/:id', soloAdmin, a(admin.eliminarPublicacion));
+router.post('/admin/publicaciones/:id/advertencia', soloAdmin, a(admin.advertir));
+router.patch('/admin/publicaciones/:id/estado', soloAdmin, a(admin.actualizarEstado));
+router.get('/admin/auditoria', soloAdmin, a(admin.auditoria));
+
+module.exports = router;

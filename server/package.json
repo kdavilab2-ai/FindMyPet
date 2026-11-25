@@ -1,0 +1,50 @@
+{
+  "name": "findmypet-server",
+  "version": "1.0.0",
+  "description": "API REST de FindMyPet",
+  "main": "src/index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "start:prod": "node db/migrar.js && node src/index.js",
+    "test": "jest --runInBand",
+    "db:migrate": "node db/migrar.js",
+    "db:reset": "node db/migrar.js --reiniciar",
+    "seed": "node db/seed.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^4.22.3",
+    "express-rate-limit": "^8.7.5",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.5.0",
+    "nodemailer": "^10.6.1",
+    "pg": "^8.23.1",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.3.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFiles": [
+      "<rootDir>/tests/env.js"
+    ],
+    "globalSetup": "<rootDir>/tests/globalSetup.js",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
