@@ -191,6 +191,7 @@ async function resumen(req, res) {
 
 // Detalle. RNF-05: el contacto solo se muestra a usuarios con sesión iniciada
 async function obtener(req, res) {
+  res.set('Cache-Control', 'no-store');
   const id = entero(req.params.id);
   const p = await obtenerPorId(id);
   if (!p) throw new ErrorHttp(404, 'Publicación no encontrada');
@@ -206,8 +207,10 @@ async function obtener(req, res) {
     p.contactos = await consulta(
       `SELECT tc.nombre AS tipo, cp.valor FROM contacto_publicacion cp
        JOIN tipo_contacto tc ON tc.id_tipo_contacto = cp.id_tipo_contacto
-       WHERE cp.id_publicacion = $1 ORDER BY cp.id_tipo_contacto`,
-      [id],
+       JOIN publicacion p ON p.id_publicacion = cp.id_publicacion
+       WHERE cp.id_publicacion = $1 AND ($2::boolean OR p.id_tipo_contacto_visible IS NULL OR p.id_tipo_contacto_visible = cp.id_tipo_contacto)
+       ORDER BY cp.id_tipo_contacto`,
+      [id, Boolean(esAutor)],
     );
     const autor = await una('SELECT nombres, apellidos FROM usuario WHERE id_usuario = $1', [p.idUsuario]);
     p.autor = `${autor.nombres} ${autor.apellidos.charAt(0)}.`;
@@ -308,10 +311,14 @@ async function actualizar(req, res) {
     // El UPDATE bloquea la publicación hasta confirmar el total de archivos de esta edición.
     const [publicacion] = await tx.consulta(
       `UPDATE publicacion SET id_especie = $1, id_raza = $2, id_tamano = $3, nombre_animal = $4, descripcion = $5
-       WHERE id_publicacion = $6 RETURNING id_publicacion`,
+       WHERE id_publicacion = $6 RETURNING id_publicacion, id_tipo_contacto_visible`,
       [animal.idEspecie, animal.idRaza, animal.idTamano, animal.nombreAnimal, animal.descripcion, actual.idPublicacion],
     );
     if (!publicacion) throw new ErrorHttp(404, 'Publicación no encontrada');
+    const visible = publicacion.idTipoContactoVisible;
+    if (visible && !contactos.some(([tipo]) => tipo === visible)) {
+      throw new ErrorHttp(400, 'Elige otro contacto visible en Seguridad y privacidad antes de quitar el actual');
+    }
     const [{ total, fotos }] = await tx.consulta(
       `SELECT COUNT(*)::int AS total, (COUNT(*) FILTER (WHERE id_tipo_multimedia = $3))::int AS fotos
        FROM multimedia WHERE id_publicacion = $1 AND NOT (id_multimedia = ANY($2::int[]))`,

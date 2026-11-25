@@ -139,6 +139,27 @@ CREATE TABLE IF NOT EXISTS token_usuario (
   fecha_uso     TIMESTAMP
 );
 
+ALTER TABLE usuario ADD COLUMN IF NOT EXISTS avisar_accesos BOOLEAN NOT NULL DEFAULT TRUE;
+
+CREATE TABLE IF NOT EXISTS sesion_usuario (
+  id_sesion UUID PRIMARY KEY,
+  id_usuario INT NOT NULL REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+  navegador VARCHAR(40) NOT NULL,
+  sistema VARCHAR(40) NOT NULL,
+  iniciada_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  renovada_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expira_en TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sesion_usuario ON sesion_usuario(id_usuario, expira_en);
+
+CREATE TABLE IF NOT EXISTS solicitud_derecho_cuenta (
+  id_solicitud BIGSERIAL PRIMARY KEY,
+  id_usuario INT NOT NULL REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+  tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('desactivacion', 'eliminacion')),
+  creada_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (id_usuario, tipo)
+);
+
 CREATE TABLE IF NOT EXISTS consentimiento (
   id_consentimiento SERIAL PRIMARY KEY,
   id_usuario        INT NOT NULL REFERENCES usuario(id_usuario) ON DELETE CASCADE,
@@ -174,6 +195,7 @@ CREATE TABLE IF NOT EXISTS publicacion (
   fecha_creacion TIMESTAMP NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_publicacion_tipo ON publicacion(id_tipo, id_estado);
+ALTER TABLE publicacion ADD COLUMN IF NOT EXISTS id_tipo_contacto_visible INT REFERENCES tipo_contacto(id_tipo_contacto);
 
 CREATE TABLE IF NOT EXISTS publicacion_color (
   id_publicacion INT REFERENCES publicacion(id_publicacion) ON DELETE CASCADE,
@@ -320,7 +342,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO tipo_multimedia VALUES (1, 'Imagen'), (2, 'Video') ON CONFLICT DO NOTHING;
 INSERT INTO tipo_contacto VALUES (1, 'Teléfono'), (2, 'WhatsApp'), (3, 'Correo') ON CONFLICT DO NOTHING;
 INSERT INTO tipo_notificacion VALUES
-  (1, 'Alerta de proximidad'), (2, 'Coincidencia IA'), (3, 'Interés en adopción'), (4, 'Moderación'), (5, 'Cuenta')
+  (1, 'Alerta de proximidad'), (2, 'Coincidencia IA'), (3, 'Interés en adopción'), (4, 'Moderación'), (5, 'Cuenta'), (6, 'Seguridad')
 ON CONFLICT DO NOTHING;
 INSERT INTO tipo_accion VALUES (1, 'Eliminar'), (2, 'Advertencia'), (3, 'Actualizar') ON CONFLICT DO NOTHING;
 INSERT INTO estado_coincidencia VALUES (1, 'Sugerida'), (2, 'Confirmada'), (3, 'Descartada') ON CONFLICT DO NOTHING;

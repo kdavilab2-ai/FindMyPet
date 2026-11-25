@@ -31,6 +31,13 @@ export function AuthProvider({ children }) {
     setAviso(motivo);
   }, []);
 
+  const salir = useCallback(async (motivo = '') => {
+    if (!localStorage.getItem('token')) return cerrarSesion(motivo);
+    const solicitud = api.post('/auth/cerrar');
+    cerrarSesion(motivo);
+    try { await solicitud; } catch { /* La sesión local se cierra incluso si se pierde la conexión. */ }
+  }, [cerrarSesion]);
+
   // Sesión expirada en el servidor
   useEffect(() => {
     const alExpirar = () => cerrarSesion('Su sesión expiró. Inicie sesión nuevamente');
@@ -49,18 +56,22 @@ export function AuthProvider({ children }) {
       const ahora = Date.now();
       const inactivo = ahora - ultimaActividad.current;
       if (inactivo >= INACTIVIDAD_MS) {
-        cerrarSesion('Cerramos su sesión por 30 minutos de inactividad');
+        salir('Cerramos su sesión por 30 minutos de inactividad');
       } else if (ahora - ultimaRenovacion >= RENOVAR_CADA_MS && inactivo < RENOVAR_CADA_MS) {
         // Hubo actividad reciente: se pide un token nuevo antes de que venza el actual (30 min)
         ultimaRenovacion = ahora;
-        try { guardarSesion(await api.post('/auth/renovar')); } catch { /* el evento sesion-expirada se encarga */ }
+        const tokenAnterior = localStorage.getItem('token');
+        try {
+          const sesion = await api.post('/auth/renovar');
+          if (localStorage.getItem('token') === tokenAnterior) guardarSesion(sesion);
+        } catch { /* el evento sesion-expirada se encarga */ }
       }
     }, 60 * 1000);
     return () => {
       eventos.forEach((e) => window.removeEventListener(e, marcar));
       clearInterval(intervalo);
     };
-  }, [usuario?.id, cerrarSesion, guardarSesion]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [usuario?.id, salir, guardarSesion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = async (correo, contrasena) => { guardarSesion(await api.post('/auth/login', { correo, contrasena })); setAviso(''); };
   const registro = async (datos) => { guardarSesion(await api.post('/auth/registro', datos)); setAviso(''); };
@@ -72,6 +83,7 @@ export function AuthProvider({ children }) {
     guardarSesion,
     actualizarUsuario,
     cerrarSesion,
+    salir,
     aviso,
     limpiarAviso: () => setAviso(''),
     esAdmin: usuario?.idRol === 3,

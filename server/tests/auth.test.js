@@ -104,9 +104,9 @@ describe('RF-03: perfil', () => {
     const upd = await request(app).put('/api/perfil').set(auth).send({ nombres: 'Ciudadana Actualizada', apellidos: 'Prueba Actualizada', telefono: '0000000002' });
     expect(upd.status).toBe(200);
     expect(upd.body.usuario.nombres).toBe('Ciudadana Actualizada');
-    const mal = await request(app).put('/api/perfil/contrasena').set(auth).send({ actual: 'incorrecta1', nueva: 'Clave98765' });
+    const mal = await request(app).put('/api/perfil/contrasena').set(auth).send({ actual: 'incorrecta1', nueva: 'Clave98765', confirmar: 'Clave98765' });
     expect(mal.status).toBe(400);
-    const bien = await request(app).put('/api/perfil/contrasena').set(auth).send({ actual: 'Nueva12345', nueva: 'Clave98765' });
+    const bien = await request(app).put('/api/perfil/contrasena').set(auth).send({ actual: 'Nueva12345', nueva: 'Clave98765', confirmar: 'Clave98765' });
     expect(bien.status).toBe(200);
   });
 });

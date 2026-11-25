@@ -260,7 +260,7 @@ export function Privacidad() {
         <p><b className="text-texto">Finalidad.</b> Publicar reportes de mascotas desaparecidas, encontradas y en adopción; ponerte en contacto con otras personas interesadas en tu caso; enviarte alertas de mascotas cercanas si las activas.</p>
         <p><b className="text-texto">Quién ve tus datos.</b> Los datos de contacto de una publicación solo se muestran a usuarios con sesión iniciada. Tu correo de cuenta nunca se muestra públicamente.</p>
         <p><b className="text-texto">Inteligencia artificial.</b> Al servicio de IA solo se envían las fotos y los atributos del animal, nunca tus datos personales.</p>
-        <p><b className="text-texto">Tus derechos.</b> Conforme a la Ley Orgánica de Protección de Datos Personales del Ecuador, puedes acceder, rectificar y eliminar tus datos desde tu perfil o solicitándolo al administrador.</p>
+        <p><b className="text-texto">Tus datos.</b> Puedes corregirlos desde tu perfil, descargar una copia o enviar una solicitud de eliminación para revisión de la administración en <Link to="/perfil/seguridad" className="text-lavanda underline">Seguridad y privacidad</Link>.</p>
       </div>
     </div>
   );

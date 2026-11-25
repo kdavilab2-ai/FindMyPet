@@ -3,11 +3,12 @@ const { una, consulta, transaccion } = require('../lib/db');
 const { ErrorHttp } = require('../middlewares/errores');
 const { leerUbicacion, guardarUbicacion, JSON_UBICACION, JOIN_UBICACION } = require('../lib/ubicacion');
 const { REGEX_TELEFONO, texto, requerido, entero, contrasenaSegura } = require('../lib/validar');
-const { sesion } = require('./auth.controller');
+const { datosUsuario, sesion } = require('./auth.controller');
+const { invalidarCredenciales, avisoSeguridad } = require('../lib/sesiones');
 
 // RF-03: ver perfil
 async function obtener(req, res) {
-  const { usuario } = await sesion(req.usuario.id);
+  const usuario = await datosUsuario(req.usuario.id);
   const alerta = await una(
     `SELECT pa.radio_km, ${JSON_UBICACION} AS ubicacion
      FROM preferencia_alerta pa ${JOIN_UBICACION('pa.id_ubicacion')} WHERE pa.id_usuario = $1`,
@@ -41,16 +42,27 @@ async function actualizar(req, res) {
       await tx.consulta('UPDATE refugio SET nombre = $1 WHERE id_refugio = $2', [texto(b.nombreRefugio).slice(0, 100), req.usuario.idRefugio]);
     }
   });
-  res.json(await sesion(req.usuario.id));
+  res.json(await sesion(req.usuario.id, req.usuario.idSesion));
 }
 
+// RF-03 y RNF-19: reautentica el cambio e invalida las demás sesiones y enlaces de recuperación.
 async function cambiarContrasena(req, res) {
-  requerido(req.body, ['actual', 'nueva']);
-  const u = await una('SELECT contrasena_hash FROM usuario WHERE id_usuario = $1', [req.usuario.id]);
-  if (!(await bcrypt.compare(String(req.body.actual), u.contrasenaHash))) throw new ErrorHttp(400, 'La contraseña actual es incorrecta');
-  const nueva = contrasenaSegura(req.body.nueva);
-  await una('UPDATE usuario SET contrasena_hash = $1 WHERE id_usuario = $2', [await bcrypt.hash(nueva, 10), req.usuario.id]);
-  res.json({ mensaje: 'Contraseña actualizada' });
+  const { actual, nueva, confirmar } = req.body;
+  if (typeof actual !== 'string' || !actual) throw new ErrorHttp(400, 'Ingrese la contraseña actual');
+  contrasenaSegura(nueva);
+  if (nueva !== confirmar) throw new ErrorHttp(400, 'Las contraseñas no coinciden');
+  const { id, idSesion } = req.usuario;
+  await transaccion(async (tx) => {
+    const [u] = await tx.consulta('SELECT contrasena_hash FROM usuario WHERE id_usuario = $1 FOR UPDATE', [id]);
+    const [vigente] = await tx.consulta('SELECT 1 FROM sesion_usuario WHERE id_sesion = $1 AND id_usuario = $2 AND expira_en > NOW() FOR UPDATE', [idSesion, id]);
+    if (!vigente) throw new ErrorHttp(401, 'Debe iniciar sesión');
+    if (!u || !(await bcrypt.compare(actual, u.contrasenaHash))) throw new ErrorHttp(400, 'La contraseña actual es incorrecta');
+    if (await bcrypt.compare(nueva, u.contrasenaHash)) throw new ErrorHttp(400, 'Elige una contraseña diferente de la actual');
+    await tx.consulta('UPDATE usuario SET contrasena_hash = $1 WHERE id_usuario = $2', [await bcrypt.hash(nueva, 10), id]);
+    await invalidarCredenciales(tx.consulta, id, idSesion);
+    await avisoSeguridad(tx.consulta, id, 'Se cambió la contraseña de tu cuenta y se cerraron las otras sesiones.');
+  });
+  res.json({ mensaje: 'Contraseña actualizada. Se cerraron las otras sesiones.' });
 }
 
 // RF-26: zona y radio para recibir alertas de mascotas desaparecidas cercanas

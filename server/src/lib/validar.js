@@ -49,10 +49,11 @@ function listaEnteros(valor, nombre) {
 }
 
 function contrasenaSegura(valor) {
-  const c = String(valor || '');
+  const c = typeof valor === 'string' ? valor : '';
   if (c.length < 8 || !/[A-Za-z]/.test(c) || !/\d/.test(c)) {
     throw new ErrorHttp(400, 'La contraseña debe tener al menos 8 caracteres, con letras y números');
   }
+  if (Buffer.byteLength(c, 'utf8') > 72) throw new ErrorHttp(400, 'La contraseña no puede superar los 72 bytes');
   return c;
 }
 

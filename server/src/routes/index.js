@@ -7,6 +7,7 @@ const { ROL } = require('../lib/constantes');
 
 const auth = require('../controllers/auth.controller');
 const perfil = require('../controllers/perfil.controller');
+const seguridad = require('../controllers/seguridad.controller');
 const catalogos = require('../controllers/catalogos.controller');
 const publicaciones = require('../controllers/publicaciones.controller');
 const coincidencias = require('../controllers/coincidencias.controller');
@@ -33,19 +34,39 @@ router.get('/catalogos', a(catalogos.listar));
 router.get('/multimedia/:id', a(multimedia.obtener));
 
 // Autenticación (RF-01, RF-02, RF-18)
+router.use('/auth', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 router.post('/auth/registro', limiteAuth, a(auth.registro));
 router.post('/auth/login', limiteAuth, a(auth.login));
 router.post('/auth/olvide', limiteAuth, a(auth.olvideContrasena));
 router.post('/auth/restablecer', limiteAuth, a(auth.restablecerContrasena));
 router.post('/auth/renovar', verificarToken, a(auth.renovar));
+router.post('/auth/cerrar', verificarToken, a(auth.cerrar));
 router.get('/auth/yo', verificarToken, a(auth.yo));
 
 // Perfil y alertas (RF-03, RF-26)
 router.get('/perfil', verificarToken, a(perfil.obtener));
 router.put('/perfil', verificarToken, a(perfil.actualizar));
-router.put('/perfil/contrasena', verificarToken, a(perfil.cambiarContrasena));
+router.put('/perfil/contrasena', verificarToken, limiteAuth, a(perfil.cambiarContrasena));
 router.put('/perfil/alertas', verificarToken, a(perfil.guardarAlerta));
 router.delete('/perfil/alertas', verificarToken, a(perfil.quitarAlerta));
+
+router.use('/seguridad', verificarToken, (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+router.get('/seguridad', a(seguridad.obtener));
+router.delete('/seguridad/sesiones', a(seguridad.revocar));
+router.delete('/seguridad/sesiones/:id', a(seguridad.revocar));
+router.put('/seguridad/notificaciones', a(seguridad.notificaciones));
+router.get('/seguridad/contactos', a(seguridad.contactos));
+router.patch('/seguridad/contactos/:id', a(seguridad.cambiarContacto));
+router.get('/seguridad/mis-datos', a(seguridad.descargar));
+router.get('/seguridad/solicitudes', a(seguridad.solicitudes));
+router.post('/seguridad/solicitudes', limiteAuth, a(seguridad.solicitar));
+router.delete('/seguridad/solicitudes/:tipo', a(seguridad.retirarSolicitud));
 
 // Publicaciones (RF-04 a RF-08, RF-12 a RF-16, RF-20, RF-21)
 router.get('/publicaciones', a(publicaciones.listar));
@@ -80,6 +101,7 @@ router.post('/donaciones/:id/aportes', verificarToken, a(donaciones.aportar));
 
 // Administración (RF-17, RF-19, RNF-22)
 const soloAdmin = [verificarToken, verificarRol(ROL.ADMIN)];
+router.get('/admin/solicitudes-cuenta', soloAdmin, a(seguridad.solicitudesAdmin));
 router.get('/admin/estadisticas', soloAdmin, a(admin.estadisticas));
 router.get('/admin/usuarios', soloAdmin, a(admin.usuarios));
 router.patch('/admin/usuarios/:id/estado', soloAdmin, a(admin.cambiarEstadoCuenta));

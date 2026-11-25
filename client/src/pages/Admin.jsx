@@ -6,7 +6,7 @@ import { useCatalogos } from '../context/CatalogosContext';
 import { Alerta, Cargando, InsigniaEstado, InsigniaTipo, Modal, formatoFecha, formatoFechaHora } from '../components/Comunes';
 
 const VISTAS = [
-  ['resumen', 'Resumen'], ['publicaciones', 'Publicaciones'], ['usuarios', 'Usuarios y refugios'], ['auditoria', 'Auditoría'],
+  ['resumen', 'Resumen'], ['publicaciones', 'Publicaciones'], ['usuarios', 'Usuarios y refugios'], ['auditoria', 'Auditoría'], ['cuentas', 'Solicitudes de cuenta'],
 ];
 
 // Modal que pide el motivo de cada acción administrativa (RNF-22)
@@ -49,7 +49,7 @@ export default function Admin() {
   const cargar = useCallback(async () => {
     setError('');
     try {
-      const ruta = { resumen: 'estadisticas', publicaciones: 'publicaciones', usuarios: 'usuarios', auditoria: 'auditoria' }[vista];
+      const ruta = { resumen: 'estadisticas', publicaciones: 'publicaciones', usuarios: 'usuarios', auditoria: 'auditoria', cuentas: 'solicitudes-cuenta' }[vista];
       const r = await api.get(`/admin/${ruta}`);
       setDatos((d) => ({ ...d, [vista]: r }));
     } catch (e) { setError(e.message); }
@@ -95,6 +95,23 @@ export default function Admin() {
         <Alerta>{error}</Alerta>
       </div>
       {!d && !error && <Cargando />}
+
+      {vista === 'cuentas' && d && (
+        <section className="panel mt-4 space-y-4 p-5" aria-labelledby="solicitudes-cuenta">
+          <h2 id="solicitudes-cuenta" className="text-lg text-lavanda">Solicitudes pendientes de revisión</h2>
+          {d.length === 0 ? <p className="text-sm text-suave">No hay solicitudes de cuenta.</p> : (
+            <ul className="divide-y divide-borde">
+              {d.map((s) => (
+                <li key={s.id} className="flex flex-wrap justify-between gap-3 py-3">
+                  <div><p className="font-semibold">{s.tipo === 'eliminacion' ? 'Eliminación permanente' : 'Desactivación temporal'}</p>
+                    <p className="break-all text-sm text-suave">{s.nombres} {s.apellidos} · {s.correo}</p></div>
+                  <span className="text-sm text-suave">{formatoFechaHora(s.creadaEn)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {vista === 'resumen' && d && (
         <div className="mt-4 space-y-6">

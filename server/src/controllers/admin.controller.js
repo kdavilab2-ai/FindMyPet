@@ -55,6 +55,7 @@ async function cambiarEstadoCuenta(req, res) {
   if (!u) throw new ErrorHttp(404, 'Usuario no encontrado');
   await transaccion(async (tx) => {
     await tx.consulta('UPDATE usuario SET id_estado_cuenta = $1 WHERE id_usuario = $2', [idEstado, id]);
+    if (idEstado !== ESTADO_CUENTA.ACTIVA) await tx.consulta('DELETE FROM sesion_usuario WHERE id_usuario = $1', [id]);
     await tx.consulta(
       'INSERT INTO control_cuenta (id_admin, id_usuario, id_estado_nuevo, motivo) VALUES ($1, $2, $3, $4)',
       [req.usuario.id, id, idEstado, motivo],

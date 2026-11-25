@@ -6,7 +6,7 @@ export function urlArchivo(ruta) {
   return ruta.startsWith('http') ? ruta : `${API_URL}${ruta}`;
 }
 
-async function peticion(ruta, { metodo = 'GET', datos, formulario } = {}) {
+async function peticion(ruta, { metodo = 'GET', datos, formulario, archivo = false } = {}) {
   const encabezados = {};
   const token = localStorage.getItem('token');
   if (token) encabezados.Authorization = `Bearer ${token}`;
@@ -24,9 +24,12 @@ async function peticion(ruta, { metodo = 'GET', datos, formulario } = {}) {
     throw new Error('No se pudo conectar con el servidor. Revise su conexión');
   }
   if (res.status === 204) return null;
+  if (archivo && res.ok) return res.blob();
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 401 && token) window.dispatchEvent(new Event('sesion-expirada'));
+    if (res.status === 401 && token && localStorage.getItem('token') === token && ruta !== '/auth/login') {
+      window.dispatchEvent(new Event('sesion-expirada'));
+    }
     throw new Error(json.error || 'Ocurrió un error inesperado');
   }
   return json;
@@ -34,6 +37,7 @@ async function peticion(ruta, { metodo = 'GET', datos, formulario } = {}) {
 
 export const api = {
   get: (ruta) => peticion(ruta),
+  descargar: (ruta) => peticion(ruta, { archivo: true }),
   post: (ruta, datos) => peticion(ruta, { metodo: 'POST', datos }),
   put: (ruta, datos) => peticion(ruta, { metodo: 'PUT', datos }),
   patch: (ruta, datos) => peticion(ruta, { metodo: 'PATCH', datos }),

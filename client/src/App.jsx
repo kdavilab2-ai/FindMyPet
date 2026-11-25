@@ -9,6 +9,7 @@ import Reportar from './pages/Reportar';
 import MisReportes from './pages/MisReportes';
 import Coincidencias from './pages/Coincidencias';
 import Perfil from './pages/Perfil';
+import Seguridad from './pages/Seguridad';
 import MiRefugio from './pages/MiRefugio';
 import Admin from './pages/Admin';
 import { ListaRefugios, DetalleRefugio } from './pages/Refugios';
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/mis-reportes" element={<RutaPrivada><MisReportes /></RutaPrivada>} />
           <Route path="/coincidencias" element={<RutaPrivada><Coincidencias /></RutaPrivada>} />
           <Route path="/perfil" element={<RutaPrivada><Perfil /></RutaPrivada>} />
+          <Route path="/perfil/seguridad" element={<RutaPrivada><Seguridad /></RutaPrivada>} />
           <Route path="/mi-refugio" element={<RutaPrivada roles={[2]}><MiRefugio /></RutaPrivada>} />
           <Route path="/admin" element={<RutaPrivada roles={[3]}><Admin /></RutaPrivada>} />
           <Route path="*" element={<NoEncontrada />} />

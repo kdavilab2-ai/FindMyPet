@@ -66,7 +66,10 @@ describe('CU-13: control de cuentas', () => {
 
   test('reactiva la cuenta y no permite cambiar la propia', async () => {
     await request(app).patch(`/api/admin/usuarios/${luis.id}/estado`).set(conToken(admin.token)).send({ idEstado: 1, motivo: 'Revisión completada' });
-    expect((await request(app).post('/api/auth/login').send({ correo: 'luis@findmypet.test', contrasena: 'Clave1234' })).status).toBe(200);
+    expect((await request(app).get('/api/auth/yo').set(conToken(luis.token))).status).toBe(401);
+    const nuevoAcceso = await request(app).post('/api/auth/login').send({ correo: 'luis@findmypet.test', contrasena: 'Clave1234' });
+    expect(nuevoAcceso.status).toBe(200);
+    luis.token = nuevoAcceso.body.token;
     expect((await request(app).patch(`/api/admin/usuarios/${admin.id}/estado`).set(conToken(admin.token)).send({ idEstado: 3, motivo: 'prueba' })).status).toBe(400);
   });
 });

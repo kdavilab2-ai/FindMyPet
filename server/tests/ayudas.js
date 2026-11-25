@@ -20,11 +20,11 @@ async function idSector(canton, sector) {
 }
 
 // Crea un usuario directamente en la BD (rol 1 ciudadano, 2 refugio, 3 admin) y devuelve su token
-async function crearUsuario({ correo, rol = 1, nombres = 'Usuario', refugioAutorizado = true }) {
+async function crearUsuario({ correo, rol = 1, nombres = 'Usuario', refugioAutorizado = true, avisarAccesos = false }) {
   const u = await db.una(
-    `INSERT INTO usuario (id_rol, nombres, apellidos, correo, contrasena_hash, telefono)
-     VALUES ($1, $2, 'Prueba', $3, $4, '0000000003') RETURNING id_usuario`,
-    [rol, nombres, correo, await bcrypt.hash('Clave1234', 4)],
+    `INSERT INTO usuario (id_rol, nombres, apellidos, correo, contrasena_hash, telefono, avisar_accesos)
+     VALUES ($1, $2, 'Prueba', $3, $4, '0000000003', $5) RETURNING id_usuario`,
+    [rol, nombres, correo, await bcrypt.hash('Clave1234', 4), avisarAccesos],
   );
   if (rol === 2) {
     const ub = await db.una('INSERT INTO ubicacion (id_sector) VALUES ($1) RETURNING id_ubicacion', [await idSector('Milagro', 'Centro')]);

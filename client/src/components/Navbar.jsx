@@ -41,6 +41,7 @@ function Notificaciones() {
     setAbierto(false);
     cargar();
     if (n.idTipo === 2) navegar('/coincidencias');
+    else if (n.tipo === 'Seguridad') navegar('/perfil/seguridad');
     else if (n.idPublicacion) navegar(`/publicaciones/${n.idPublicacion}`);
   };
 
@@ -81,7 +82,7 @@ function Notificaciones() {
 }
 
 function MenuUsuario() {
-  const { usuario, esAdmin, esRefugio, cerrarSesion } = useAuth();
+  const { usuario, esAdmin, esRefugio, salir } = useAuth();
   const [abierto, setAbierto] = useState(false);
   const ref = useRef(null);
   const navegar = useNavigate();
@@ -106,11 +107,12 @@ function MenuUsuario() {
           <button className={opcion} onClick={() => ir('/mis-reportes')}>📋 Mis reportes</button>
           <button className={opcion} onClick={() => ir('/coincidencias')}>🤖 Coincidencias IA</button>
           <button className={opcion} onClick={() => ir('/perfil')}>👤 Mi perfil y alertas</button>
+          <button className={opcion} onClick={() => ir('/perfil/seguridad')}>🛡️ Seguridad y privacidad</button>
           {esRefugio && <button className={opcion} onClick={() => ir('/mi-refugio')}>🏠 Mi refugio</button>}
           <button className={opcion} onClick={() => ir('/refugios')}>💜 Refugios y donaciones</button>
           {esAdmin && <button className={opcion} onClick={() => ir('/admin')}>🛡️ Administración</button>}
           <hr className="my-1 border-borde" />
-          <button className={`${opcion} text-perdida`} onClick={() => { cerrarSesion(); ir('/'); }}>Cerrar sesión</button>
+          <button className={`${opcion} text-perdida`} onClick={() => { salir(); ir('/'); }}>Cerrar sesión</button>
         </div>
       )}
     </div>

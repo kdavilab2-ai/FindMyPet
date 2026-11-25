@@ -79,6 +79,12 @@ Usa estas cuentas ficticias solo en una base desechable. `npm run seed` borra us
 cd server && npm test
 ```
 
+## Seguridad y privacidad
+
+Abre **Mi perfil → Seguridad y privacidad**. Después de actualizar, ejecuta `npm run db:migrate` en `server` y vuelve a iniciar sesión. Los JWT anteriores a la migración deberán renovarse mediante un nuevo inicio de sesión. Los avisos críticos se entregan en la campana de FindMyPet.
+
+La exportación JSON incluye datos de la cuenta y referencias a los archivos propios. Las solicitudes de desactivación o eliminación llegan a **Administración → Solicitudes de cuenta**, donde se revisan. Para automatizar su ejecución hace falta definir qué sucede con reportes y adopciones pendientes, cómo se reactiva la cuenta y qué datos se deben conservar o eliminar. La verificación en dos pasos queda pendiente hasta configurar el almacenamiento protegido del segundo factor y el procedimiento de recuperación de acceso.
+
 ## Despliegue
 - **Base de datos:** Neon → crear proyecto → copiar la *connection string* (incluye `?sslmode=require`).
 - **Backend:** Render → New → Blueprint con `render.yaml`, o Web Service con raíz `server`, build `npm install`,

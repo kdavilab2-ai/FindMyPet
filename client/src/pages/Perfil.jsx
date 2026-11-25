@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Alerta, Cargando } from '../components/Comunes';
@@ -9,7 +10,6 @@ export default function Perfil() {
   const { guardarSesion } = useAuth();
   const [perfil, setPerfil] = useState(null);
   const [datos, setDatos] = useState({});
-  const [clave, setClave] = useState({ actual: '', nueva: '', confirmar: '' });
   const [alerta, setAlerta] = useState({ ubicacion: ubicacionDesdeApi(null), radioKm: 5, activa: false });
   const [mensajes, setMensajes] = useState({});
 
@@ -27,11 +27,6 @@ export default function Perfil() {
   const guardarDatos = async (e) => {
     e.preventDefault();
     try { guardarSesion(await api.put('/perfil', datos)); mostrar('datos', 'ok', 'Datos actualizados'); } catch (err) { mostrar('datos', 'error', err.message); }
-  };
-  const guardarClave = async (e) => {
-    e.preventDefault();
-    if (clave.nueva !== clave.confirmar) return mostrar('clave', 'error', 'Las contraseñas no coinciden');
-    try { await api.put('/perfil/contrasena', clave); setClave({ actual: '', nueva: '', confirmar: '' }); mostrar('clave', 'ok', 'Contraseña actualizada'); } catch (err) { mostrar('clave', 'error', err.message); }
   };
   const guardarAlerta = async (e) => {
     e.preventDefault();
@@ -83,16 +78,10 @@ export default function Perfil() {
         </div>
       </form>
 
-      <form onSubmit={guardarClave} className="panel space-y-4 p-5">
-        <h2 className="text-lg">Cambiar contraseña</h2>
-        {msj('clave')}
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div><label className="etiqueta" htmlFor="c1">Actual</label><input id="c1" type="password" required className="input" autoComplete="current-password" value={clave.actual} onChange={(e) => setClave({ ...clave, actual: e.target.value })} /></div>
-          <div><label className="etiqueta" htmlFor="c2">Nueva</label><input id="c2" type="password" required className="input" autoComplete="new-password" value={clave.nueva} onChange={(e) => setClave({ ...clave, nueva: e.target.value })} /></div>
-          <div><label className="etiqueta" htmlFor="c3">Confirmar</label><input id="c3" type="password" required className="input" autoComplete="new-password" value={clave.confirmar} onChange={(e) => setClave({ ...clave, confirmar: e.target.value })} /></div>
-        </div>
-        <button className="btn btn-secundario">Cambiar contraseña</button>
-      </form>
+      <section className="panel flex flex-wrap items-center justify-between gap-4 p-5">
+        <div><h2 className="text-lg">Seguridad y privacidad</h2><p className="text-sm text-suave">Administra tu contraseña, sesiones y datos personales.</p></div>
+        <Link to="/perfil/seguridad" className="btn btn-secundario">Seguridad y privacidad</Link>
+      </section>
     </div>
   );
 }

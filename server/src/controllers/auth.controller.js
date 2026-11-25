@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { una, transaccion } = require('../lib/db');
 const { ErrorHttp } = require('../middlewares/errores');
 const { firmarToken } = require('../middlewares/auth');
+const { VIGENCIA, iniciarSesion, invalidarCredenciales, avisoSeguridad } = require('../lib/sesiones');
 const { enviarCorreo } = require('../lib/correo');
 const { leerUbicacion, guardarUbicacion } = require('../lib/ubicacion');
 const { REGEX_CORREO, REGEX_TELEFONO, texto, requerido, contrasenaSegura } = require('../lib/validar');
@@ -10,7 +11,7 @@ const { ROL, ESTADO_CUENTA, TIPO_TOKEN, VERSION_POLITICA } = require('../lib/con
 
 const hashToken = (t) => crypto.createHash('sha256').update(t).digest('hex');
 
-async function sesion(idUsuario) {
+async function datosUsuario(idUsuario) {
   const u = await una(
     `SELECT u.id_usuario, u.id_rol, r.nombre AS rol, u.nombres, u.apellidos, u.correo, u.telefono,
             rf.id_refugio, rf.nombre AS nombre_refugio, rf.autorizado
@@ -20,13 +21,15 @@ async function sesion(idUsuario) {
     [idUsuario],
   );
   return {
-    token: firmarToken(u),
-    usuario: {
-      id: u.idUsuario, idRol: u.idRol, rol: u.rol, nombres: u.nombres, apellidos: u.apellidos,
-      correo: u.correo, telefono: u.telefono,
-      refugio: u.idRefugio ? { id: u.idRefugio, nombre: u.nombreRefugio, autorizado: u.autorizado } : null,
-    },
+    id: u.idUsuario, idRol: u.idRol, rol: u.rol, nombres: u.nombres, apellidos: u.apellidos,
+    correo: u.correo, telefono: u.telefono,
+    refugio: u.idRefugio ? { id: u.idRefugio, nombre: u.nombreRefugio, autorizado: u.autorizado } : null,
   };
+}
+
+async function sesion(idUsuario, idSesion) {
+  const usuario = await datosUsuario(idUsuario);
+  return { usuario, token: firmarToken({ idUsuario, idRol: usuario.idRol }, idSesion) };
 }
 
 // RF-01 y RF-19: registro de ciudadano o refugio. RNF-21: consentimiento obligatorio.
@@ -51,7 +54,7 @@ async function registro(req, res) {
   }
 
   const hash = await bcrypt.hash(contrasena, 10);
-  const idUsuario = await transaccion(async (tx) => {
+  const { idUsuario, idSesion } = await transaccion(async (tx) => {
     const [u] = await tx.consulta(
       `INSERT INTO usuario (id_rol, nombres, apellidos, correo, contrasena_hash, telefono)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_usuario`,
@@ -65,9 +68,9 @@ async function registro(req, res) {
         [u.idUsuario, idUbicacion, texto(b.nombreRefugio).slice(0, 100)],
       );
     }
-    return u.idUsuario;
+    return { idUsuario: u.idUsuario, idSesion: await iniciarSesion(tx.consulta, u.idUsuario, req.get('User-Agent'), false) };
   });
-  res.status(201).json(await sesion(idUsuario));
+  res.status(201).json(await sesion(idUsuario, idSesion));
 }
 
 // RF-02
@@ -79,16 +82,31 @@ async function login(req, res) {
   if (!valida) throw new ErrorHttp(401, 'Correo o contraseña incorrectos');
   if (u.idEstadoCuenta === ESTADO_CUENTA.SUSPENDIDA) throw new ErrorHttp(403, 'Su cuenta está suspendida. Contacte al administrador');
   if (u.idEstadoCuenta === ESTADO_CUENTA.BLOQUEADA) throw new ErrorHttp(403, 'Su cuenta está bloqueada');
-  res.json(await sesion(u.idUsuario));
+  const idSesion = await transaccion(async (tx) => {
+    const [actual] = await tx.consulta('SELECT contrasena_hash, id_estado_cuenta, avisar_accesos FROM usuario WHERE id_usuario = $1 FOR UPDATE', [u.idUsuario]);
+    if (!actual || actual.contrasenaHash !== u.contrasenaHash || actual.idEstadoCuenta !== ESTADO_CUENTA.ACTIVA) {
+      throw new ErrorHttp(401, 'Correo o contraseña incorrectos');
+    }
+    return iniciarSesion(tx.consulta, u.idUsuario, req.get('User-Agent'), actual.avisarAccesos);
+  });
+  res.json(await sesion(u.idUsuario, idSesion));
 }
 
 // RNF-19: renueva el token mientras el usuario esté activo
 async function renovar(req, res) {
-  res.json(await sesion(req.usuario.id));
+  const s = await una(`UPDATE sesion_usuario SET renovada_en = NOW(), expira_en = ${VIGENCIA}
+    WHERE id_sesion = $1 AND id_usuario = $2 AND expira_en > NOW() RETURNING id_sesion`, [req.usuario.idSesion, req.usuario.id]);
+  if (!s) throw new ErrorHttp(401, 'Debe iniciar sesión');
+  res.json(await sesion(req.usuario.id, s.idSesion));
 }
 
 async function yo(req, res) {
-  res.json((await sesion(req.usuario.id)).usuario);
+  res.json(await datosUsuario(req.usuario.id));
+}
+
+async function cerrar(req, res) {
+  await una('DELETE FROM sesion_usuario WHERE id_sesion = $1 AND id_usuario = $2', [req.usuario.idSesion, req.usuario.id]);
+  res.status(204).end();
 }
 
 // RF-18 / CU-12: recuperación de contraseña por correo
@@ -124,11 +142,16 @@ async function restablecerContrasena(req, res) {
     [hashToken(texto(req.body.token)), TIPO_TOKEN.RECUPERACION],
   );
   if (!t) throw new ErrorHttp(400, 'El enlace no es válido o ya expiró. Solicite uno nuevo');
+  const hash = await bcrypt.hash(contrasena, 10);
   await transaccion(async (tx) => {
-    await tx.consulta('UPDATE usuario SET contrasena_hash = $1 WHERE id_usuario = $2', [await bcrypt.hash(contrasena, 10), t.idUsuario]);
-    await tx.consulta('UPDATE token_usuario SET fecha_uso = NOW() WHERE id_token = $1', [t.idToken]);
+    await tx.consulta('SELECT id_usuario FROM usuario WHERE id_usuario = $1 FOR UPDATE', [t.idUsuario]);
+    const [vigente] = await tx.consulta('UPDATE token_usuario SET fecha_uso = NOW() WHERE id_token = $1 AND fecha_uso IS NULL AND expira_en > NOW() RETURNING id_token', [t.idToken]);
+    if (!vigente) throw new ErrorHttp(400, 'El enlace no es válido o ya expiró. Solicite uno nuevo');
+    await tx.consulta('UPDATE usuario SET contrasena_hash = $1 WHERE id_usuario = $2', [hash, t.idUsuario]);
+    await invalidarCredenciales(tx.consulta, t.idUsuario);
+    await avisoSeguridad(tx.consulta, t.idUsuario, 'Se restableció la contraseña de tu cuenta y se cerraron las sesiones anteriores.');
   });
   res.json({ mensaje: 'Contraseña actualizada. Ya puede iniciar sesión' });
 }
 
-module.exports = { registro, login, renovar, yo, olvideContrasena, restablecerContrasena, sesion };
+module.exports = { registro, login, renovar, yo, cerrar, olvideContrasena, restablecerContrasena, datosUsuario, sesion };
