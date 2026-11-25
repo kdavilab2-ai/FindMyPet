@@ -35,7 +35,7 @@ export default function Detalle() {
   const [p, setP] = useState(null);
   const [error, setError] = useState('');
   const [aviso, setAviso] = useState(state?.creada ? '¡Publicación creada! Estamos buscando coincidencias en segundo plano.' : '');
-  const [activa, setActiva] = useState(0);
+  const [activa, setActiva] = useState(null);
   const [contactosAdopcion, setContactosAdopcion] = useState(null);
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
   const [generando, setGenerando] = useState(false);
@@ -47,7 +47,9 @@ export default function Detalle() {
   if (!p) return <Cargando />;
 
   const nombre = p.nombreAnimal || 'Sin nombre';
-  const archivo = p.multimedia[activa];
+  const archivo = p.multimedia.find((m) => m.id === activa)
+    || p.multimedia.find((m) => m.url === p.foto)
+    || p.multimedia[0];
   const estadosTipo = catalogos?.estados.filter((e) => e.idTipo === p.idTipo) || [];
   const contactos = p.idTipo === 3 ? contactosAdopcion : p.contactos;
 
@@ -86,8 +88,9 @@ export default function Detalle() {
           {p.multimedia.length > 1 && (
             <div className="flex gap-2 overflow-x-auto">
               {p.multimedia.map((m, i) => (
-                <button key={m.id} onClick={() => setActiva(i)} aria-label={`Ver archivo ${i + 1}`}
-                  className={`h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2 ${i === activa ? 'border-violeta' : 'border-transparent opacity-70'}`}>
+                <button key={m.id} onClick={() => setActiva(m.id)} aria-label={`Ver archivo ${i + 1}`}
+                  aria-pressed={m.id === archivo?.id}
+                  className={`h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2 ${m.id === archivo?.id ? 'border-violeta' : 'border-transparent opacity-70'}`}>
                   {m.tipo === 'Video' ? <span className="flex h-full items-center justify-center bg-black text-xl">▶</span> : <img src={urlArchivo(m.url)} alt="" className="h-full w-full object-cover" />}
                 </button>
               ))}

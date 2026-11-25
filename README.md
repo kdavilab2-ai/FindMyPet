@@ -20,7 +20,7 @@ Docente: Merino Gavilanes Jonathan Eduardo
 | Módulo | Requerimientos |
 | --- | --- |
 | Registro de ciudadanos y refugios, inicio de sesión, perfil, recuperación de contraseña por correo | RF-01, RF-02, RF-03, RF-18, RF-19, RNF-21 |
-| Reportes de mascotas desaparecidas y animales encontrados con 1 a 5 fotos o videos y ubicación por zona, dirección o mapa | RF-04 a RF-08, RF-20, RF-21 |
+| Reportes de mascotas desaparecidas y animales encontrados con al menos una foto, hasta cinco archivos en total y ubicación por zona, dirección o mapa | RF-04 a RF-08, RF-20, RF-21 |
 | Coincidencias con IA (especie, raza, color, tamaño, ubicación, fecha y foto) que el propietario confirma o descarta | RF-09, RF-10, RF-11 |
 | Validación de fotos con IA (que contengan un animal y sean aptas) | RF-22 |
 | Adopciones publicadas por refugios autorizados, contacto con aviso al refugio | RF-12 a RF-15 |

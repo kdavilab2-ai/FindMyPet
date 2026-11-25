@@ -65,7 +65,9 @@ export default function Reportar() {
 
   const razas = useMemo(() => catalogos?.razas.filter((r) => r.idEspecie === Number(datos.idEspecie)) || [], [catalogos, datos.idEspecie]);
   const campo = (clave) => ({ value: datos[clave], onChange: (e) => setDatos({ ...datos, [clave]: e.target.value }) });
-  const totalArchivos = existentes.filter((m) => !quitar.includes(m.id)).length + nuevos.length;
+  const conservados = existentes.filter((m) => !quitar.includes(m.id));
+  const totalArchivos = conservados.length + nuevos.length;
+  const hayFoto = conservados.some((m) => m.tipo === 'Imagen') || nuevos.some((m) => !m.video);
 
   const agregarArchivos = (lista) => {
     setError('');
@@ -88,7 +90,11 @@ export default function Reportar() {
   const enviar = async (e) => {
     e.preventDefault();
     setError('');
-    if (totalArchivos < 1) return setError('Agregue al menos una foto (máximo 5)');
+    if (!hayFoto) {
+      setError('Agregue al menos una foto. Los videos son opcionales.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (datos.descripcion.trim().length < 10) return setError('La descripción debe tener al menos 10 caracteres');
     if (!datos.telefono && !datos.whatsapp && !datos.correoContacto) return setError('Ingrese al menos un dato de contacto');
     for (const t of [datos.telefono, datos.whatsapp]) if (t && !/^0\d{9}$/.test(t)) return setError('Los teléfonos deben tener 10 dígitos y empezar con 0');
@@ -236,7 +242,7 @@ export default function Reportar() {
               onDrop={(e) => { e.preventDefault(); agregarArchivos([...e.dataTransfer.files]); }}
             >
               <IconoFigma nombre="pataSubida" />
-              <span className="font-semibold">Agregar fotos {totalArchivos ? `(${totalArchivos} de ${MAX})` : '(1 a 5)'}</span>
+              <span className="font-semibold">Agregar fotos y videos {totalArchivos > 0 && `(${totalArchivos} de ${MAX})`}</span>
               <span className="figma-ayuda-carga">Arrastra o haz clic para subir</span>
               <input type="file" multiple accept={TIPOS_PERMITIDOS.join(',')} className="sr-only" onChange={(e) => { agregarArchivos([...e.target.files]); e.target.value = ''; }} />
             </label>
@@ -250,6 +256,7 @@ export default function Reportar() {
                 ))}
               </div>
             )}
+            <p className="mt-3 text-xs text-suave">Agrega al menos una foto. Puedes adjuntar hasta cinco archivos en total, incluidos videos.</p>
             {catalogos.iaDisponible && <p className="mt-3 text-xs text-suave">🤖 La IA verificará que cada foto muestre un animal (RF-22).</p>}
           </div>
           <div className="panel figma-consejo-reporte">

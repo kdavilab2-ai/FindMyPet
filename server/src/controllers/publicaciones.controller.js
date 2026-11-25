@@ -7,7 +7,7 @@ const {
   REGEX_CORREO, REGEX_TELEFONO, texto, entero, enteroOpcional, fechaPasada, listaEnteros,
 } = require('../lib/validar');
 const {
-  TIPO, ESTADO_INICIAL, ESTADOS_POR_TIPO, TIPO_CONTACTO, TIPO_NOTIFICACION, ROL, MAX_ARCHIVOS,
+  TIPO, ESTADO_INICIAL, ESTADOS_POR_TIPO, TIPO_CONTACTO, TIPO_MULTIMEDIA, TIPO_NOTIFICACION, ROL, MAX_ARCHIVOS,
 } = require('../lib/constantes');
 const coincidencias = require('../services/coincidencias.service');
 const alertas = require('../services/alertas.service');
@@ -86,7 +86,7 @@ async function prepararArchivos(archivos) {
   const procesados = [];
   for (const [i, archivo] of archivos.entries()) {
     const p = await procesarArchivo(archivo, i);
-    if (p.tipo === 1) {
+    if (p.tipo === TIPO_MULTIMEDIA.IMAGEN) {
       const resultado = await ia.validarImagen(p.buffer, p.mime);
       if (resultado.valida === false) {
         throw new ErrorHttp(422, `La imagen ${i + 1} no fue aceptada: ${resultado.motivo || 'no se reconoce un animal'}. Reemplácela`);
@@ -255,6 +255,9 @@ async function crear(req, res) {
     fechaEvento = fechaPasada(b.fechaEvento);
   }
   const procesados = await prepararArchivos(archivos);
+  if (!procesados.some((a) => a.tipo === TIPO_MULTIMEDIA.IMAGEN)) {
+    throw new ErrorHttp(400, 'Agregue al menos una foto. Los videos son opcionales');
+  }
 
   const id = await transaccion(async (tx) => {
     const [pub] = await tx.consulta(
@@ -281,21 +284,14 @@ async function crear(req, res) {
   res.status(201).json(await obtenerPorId(id));
 }
 
-// RF-05: editar. Se pueden agregar fotos (hasta 5 en total) y quitar otras.
+// RF-05 y RF-21: al editar debe quedar al menos una foto y un máximo de cinco archivos.
 async function actualizar(req, res) {
   const actual = await buscarPropia(req);
   const b = req.body;
   const animal = await leerDatosAnimal(b, actual.idTipo);
   const contactos = leerContactos(b);
   const quitar = listaEnteros(b.quitarArchivos, 'Archivo');
-  const [{ total }] = await consulta(
-    'SELECT COUNT(*)::int AS total FROM multimedia WHERE id_publicacion = $1 AND NOT (id_multimedia = ANY($2::int[]))',
-    [actual.idPublicacion, quitar],
-  );
-  const nuevos = req.files || [];
-  if (total + nuevos.length < 1) throw new ErrorHttp(400, 'La publicación debe tener al menos una foto');
-  if (total + nuevos.length > MAX_ARCHIVOS) throw new ErrorHttp(400, 'Puede tener como máximo 5 fotos o videos');
-  const procesados = await prepararArchivos(nuevos);
+  const procesados = await prepararArchivos(req.files || []);
 
   let ubicacion;
   let fechaEvento;
@@ -309,11 +305,22 @@ async function actualizar(req, res) {
   }
 
   await transaccion(async (tx) => {
-    await tx.consulta(
+    // El UPDATE bloquea la publicación hasta confirmar el total de archivos de esta edición.
+    const [publicacion] = await tx.consulta(
       `UPDATE publicacion SET id_especie = $1, id_raza = $2, id_tamano = $3, nombre_animal = $4, descripcion = $5
-       WHERE id_publicacion = $6`,
+       WHERE id_publicacion = $6 RETURNING id_publicacion`,
       [animal.idEspecie, animal.idRaza, animal.idTamano, animal.nombreAnimal, animal.descripcion, actual.idPublicacion],
     );
+    if (!publicacion) throw new ErrorHttp(404, 'Publicación no encontrada');
+    const [{ total, fotos }] = await tx.consulta(
+      `SELECT COUNT(*)::int AS total, (COUNT(*) FILTER (WHERE id_tipo_multimedia = $3))::int AS fotos
+       FROM multimedia WHERE id_publicacion = $1 AND NOT (id_multimedia = ANY($2::int[]))`,
+      [actual.idPublicacion, quitar, TIPO_MULTIMEDIA.IMAGEN],
+    );
+    if (!fotos && !procesados.some((a) => a.tipo === TIPO_MULTIMEDIA.IMAGEN)) {
+      throw new ErrorHttp(400, 'La publicación debe tener al menos una foto');
+    }
+    if (total + procesados.length > MAX_ARCHIVOS) throw new ErrorHttp(400, 'Puede tener como máximo 5 fotos o videos');
     if (actual.idTipo === TIPO.ADOPCION) {
       await tx.consulta('UPDATE adopcion SET estado_salud = $1 WHERE id_publicacion = $2', [estadoSalud.slice(0, 200), actual.idPublicacion]);
     } else {

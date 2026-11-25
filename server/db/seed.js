@@ -1,35 +1,14 @@
 // Datos de demostración. Uso: npm run seed  (BORRA los datos de usuarios y publicaciones)
 require('dotenv').config({ quiet: true });
 const bcrypt = require('bcryptjs');
-const sharp = require('sharp');
+const { readFile } = require('node:fs/promises');
+const { join } = require('node:path');
 const { pool, una, consulta } = require('../src/lib/db');
 const { analizarReporte } = require('../src/services/coincidencias.service');
 
 const diasAtras = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
 const id = async (tabla, columna, nombre, extra = '') =>
   (await una(`SELECT ${columna} AS id FROM ${tabla} WHERE nombre = $1 ${extra}`, [nombre])).id;
-
-// Ilustración simple de un perro o gato (las fotos reales se suben desde la aplicación)
-async function ilustracion(especie, colorPelo, fondo) {
-  const gato = especie === 'Gato';
-  const orejas = gato
-    ? `<polygon points="150,170 190,60 250,150" fill="${colorPelo}"/><polygon points="450,170 410,60 350,150" fill="${colorPelo}"/>`
-    : `<ellipse cx="160" cy="220" rx="55" ry="110" fill="${colorPelo}" filter="brightness(0.8)" transform="rotate(20 160 220)"/>
-       <ellipse cx="440" cy="220" rx="55" ry="110" fill="${colorPelo}" transform="rotate(-20 440 220)"/>`;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450">
-    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${fondo}"/><stop offset="1" stop-color="#1E1B3A"/></linearGradient></defs>
-    <rect width="600" height="450" fill="url(#g)"/>
-    ${orejas}
-    <ellipse cx="300" cy="250" rx="165" ry="150" fill="${colorPelo}"/>
-    <ellipse cx="300" cy="310" rx="80" ry="60" fill="#FFF6E8" opacity="0.85"/>
-    <circle cx="240" cy="230" r="18" fill="#1b1b1b"/><circle cx="360" cy="230" r="18" fill="#1b1b1b"/>
-    <circle cx="246" cy="224" r="6" fill="#fff"/><circle cx="366" cy="224" r="6" fill="#fff"/>
-    <ellipse cx="300" cy="285" rx="${gato ? 14 : 24}" ry="${gato ? 10 : 16}" fill="#2a1a1a"/>
-    <path d="M300 300 Q300 330 270 335 M300 300 Q300 330 330 335" stroke="#2a1a1a" stroke-width="5" fill="none"/>
-    ${gato ? '<path d="M200 300 L120 290 M200 315 L125 320 M400 300 L480 290 M400 315 L475 320" stroke="#2a1a1a" stroke-width="3"/>' : ''}
-  </svg>`;
-  return sharp(Buffer.from(svg)).webp({ quality: 85 }).toBuffer();
-}
 
 async function crearUsuario({ rol, nombres, apellidos, correo, telefono, estado = 1 }) {
   const hash = await bcrypt.hash('Clave1234', 10);
@@ -82,12 +61,17 @@ async function crearPublicacion(p) {
   await consulta('UPDATE multimedia SET url = $1 WHERE id_multimedia = $2', [`/api/multimedia/${m.idMultimedia}`, m.idMultimedia]);
   await consulta(
     "INSERT INTO multimedia_archivo VALUES ($1, 'image/webp', $2)",
-    [m.idMultimedia, await ilustracion(p.especie, p.pelo, p.fondo)],
+    [m.idMultimedia, p.foto],
   );
   return idPub;
 }
 
 async function main() {
+  // Verifica que estén todas las fotos de demostración antes de reiniciar los datos.
+  const nombresFotos = ['rocky', 'michi', 'perro-encontrado', 'gato-encontrado', 'pelusa', 'toby', 'luna'];
+  const fotos = Object.fromEntries(await Promise.all(nombresFotos.map(async (nombre) => [
+    nombre, await readFile(join(__dirname, 'fotos-demo', `${nombre}.webp`)),
+  ])));
   await pool.query(`TRUNCATE usuario, ubicacion, publicacion, coincidencia, moderacion, notificacion,
                     valoracion, solicitud_donacion, donacion RESTART IDENTITY CASCADE`);
 
@@ -113,41 +97,41 @@ async function main() {
     usuario: ana, tipo: 1, nombre: 'Rocky', especie: 'Perro', raza: 'Mestizo', tamano: 'Mediano', colores: ['Café', 'Blanco'],
     descripcion: 'Collar rojo con placa. Es amigable pero se asusta con los ruidos fuertes. Se escapó en la noche.',
     ubicacion: ['Milagro', 'Las Piñas', 'Cdla. Las Piñas, Mz. 4', -2.1415, -79.6013], fecha: diasAtras(3), whatsapp: '0000000004',
-    pelo: '#8B5A2B', fondo: '#F05A5A', horas: 70,
+    foto: fotos.rocky, horas: 70,
   });
   await crearPublicacion({
     usuario: luis, tipo: 1, nombre: 'Michi', especie: 'Gato', raza: 'Siamés', tamano: 'Pequeño', colores: ['Crema', 'Café'],
     descripcion: 'Ojos azules, muy tímida. Se escapó por la ventana del segundo piso.',
     ubicacion: ['Milagro', 'Centro', 'Calle 9 de Octubre', -2.1335, -79.5925], fecha: diasAtras(5), whatsapp: '0000000006',
-    pelo: '#E8D3B0', fondo: '#F05A5A', horas: 110,
+    foto: fotos.michi, horas: 110,
   });
   await crearPublicacion({
     usuario: luis, tipo: 2, nombre: null, especie: 'Perro', raza: 'Mestizo', tamano: 'Mediano', colores: ['Café', 'Blanco'],
     descripcion: 'Perro café con blanco encontrado cerca del parque, tiene collar rojo sin placa. Está asustado pero bien.',
     ubicacion: ['Milagro', 'Las Piñas', 'Parque de Las Piñas', -2.1431, -79.6034], fecha: diasAtras(2), whatsapp: '0000000006',
-    pelo: '#8B5A2B', fondo: '#1E8FFF', horas: 40,
+    foto: fotos['perro-encontrado'], horas: 40,
   });
   await crearPublicacion({
     usuario: ana, tipo: 2, nombre: null, especie: 'Gato', raza: 'Mestizo', tamano: 'Pequeño', colores: ['Atigrado', 'Gris'],
     descripcion: 'Gatito atigrado encontrado en la Ciudadela Universitaria, muy cariñoso. Parece doméstico.',
     ubicacion: ['Milagro', 'Ciudadela Universitaria', 'Junto a la UNEMI', -2.1495, -79.6031], fecha: diasAtras(1), whatsapp: '0000000004',
-    pelo: '#7D7D7D', fondo: '#1E8FFF', horas: 20,
+    foto: fotos['gato-encontrado'], horas: 20,
   });
   await crearPublicacion({
     usuario: huellitasU, tipo: 3, nombre: 'Pelusa', especie: 'Gato', raza: 'Mestizo', tamano: 'Pequeño', colores: ['Blanco'],
     descripcion: 'Gatita rescatada, muy dulce. Busca un hogar tranquilo y sin perros.',
-    salud: 'Vacunada, desparasitada y esterilizada', whatsapp: '0000000007', pelo: '#F2F2F2', fondo: '#1FA463', horas: 200,
+    salud: 'Vacunada, desparasitada y esterilizada', whatsapp: '0000000007', foto: fotos.pelusa, horas: 200,
   });
   await crearPublicacion({
     usuario: huellitasU, tipo: 3, nombre: 'Toby', especie: 'Perro', raza: 'Mestizo', tamano: 'Mediano', colores: ['Dorado'],
     descripcion: 'Cachorro juguetón de 6 meses. Ideal para familia con patio.',
-    salud: 'Vacunas al día y desparasitado', whatsapp: '0000000007', pelo: '#D9A441', fondo: '#1FA463', horas: 150,
+    salud: 'Vacunas al día y desparasitado', whatsapp: '0000000007', foto: fotos.toby, horas: 150,
   });
   await crearPublicacion({
     usuario: ana, tipo: 1, estado: 2, nombre: 'Luna', especie: 'Perro', raza: 'Husky', tamano: 'Grande', colores: ['Gris', 'Blanco'],
     descripcion: 'Gracias a FindMyPet volvió a casa después de tres días.',
     ubicacion: ['Milagro', 'Los Chirijos', 'Cdla. Los Chirijos', -2.1271, -79.5986], fecha: diasAtras(20), whatsapp: '0000000004',
-    pelo: '#9AA0A6', fondo: '#7C3AED', horas: 480,
+    foto: fotos.luna, horas: 480,
   });
 
   // Donaciones y valoraciones

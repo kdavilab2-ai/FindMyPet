@@ -1,5 +1,8 @@
 const sharp = require('sharp');
-const { app, db, request, limpiarBD, cerrarBD, crearUsuario, publicar, conToken, idSector } = require('./ayudas');
+const { app, db, request, limpiarBD, cerrarBD, crearUsuario, publicar, conToken, idSector, datosBase } = require('./ayudas');
+
+// Encabezado MP4 mínimo para probar la clasificación del archivo en la API.
+const videoPrueba = Buffer.from('00000014667479706d703432000000006d703432', 'hex');
 
 let ana;
 let luis;
@@ -32,6 +35,10 @@ describe('RF-04, RF-07, RF-20, RF-21: registrar reportes', () => {
     expect(foto.headers['content-type']).toBe('image/webp');
     const meta = await sharp(foto.body).metadata();
     expect(meta.width).toBe(1280);
+    const listado = await request(app).get('/api/publicaciones?activas=true');
+    const mias = await request(app).get('/api/publicaciones/mias').set(conToken(ana.token));
+    expect(listado.body.datos).toContainEqual(expect.objectContaining({ id: res.body.id, foto: res.body.foto }));
+    expect(mias.body).toContainEqual(expect.objectContaining({ id: res.body.id, foto: res.body.foto }));
   });
 
   test('publica un animal encontrado sin nombre', async () => {
@@ -51,6 +58,14 @@ describe('RF-04, RF-07, RF-20, RF-21: registrar reportes', () => {
     const falsa = await request(app).post('/api/publicaciones').set(conToken(ana.token))
       .field('tipo', '1').attach('archivos', Buffer.from('no soy una imagen'), { filename: 'x.jpg', contentType: 'image/jpeg' });
     expect(falsa.status).toBe(400);
+  });
+
+  test('rechaza crear una publicación que solo adjunta un video', async () => {
+    const req = request(app).post('/api/publicaciones').set(conToken(ana.token));
+    for (const [campo, valor] of Object.entries(await datosBase())) req.field(campo, String(valor));
+    const res = await req.attach('archivos', videoPrueba, { filename: 'prueba.mp4', contentType: 'video/mp4' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('al menos una foto');
   });
 });
 
@@ -130,6 +145,27 @@ describe('RF-05, RF-06, RF-14, RNF-13: gestión por el autor', () => {
     const despues = (await request(app).get(`/api/publicaciones/${id}`)).body;
     expect(despues.multimedia).toHaveLength(1);
     expect(despues.multimedia[0].id).not.toBe(actual.multimedia[0].id);
+  });
+
+  test('permite agregar un video y conserva la última foto si intentan quitarla', async () => {
+    const campos = await datosBase({ nombreAnimal: 'Firulais II' });
+    const editar = () => {
+      const req = request(app).put(`/api/publicaciones/${id}`).set(conToken(ana.token));
+      for (const [campo, valor] of Object.entries(campos)) req.field(campo, String(valor));
+      return req;
+    };
+    const agregado = await editar().attach('archivos', videoPrueba, { filename: 'prueba.mp4', contentType: 'video/mp4' });
+    expect(agregado.status).toBe(200);
+    const actual = (await request(app).get(`/api/publicaciones/${id}`)).body;
+    expect(actual.multimedia.map((m) => m.tipo)).toEqual(['Imagen', 'Video']);
+    const foto = actual.multimedia[0];
+
+    const rechazo = await editar().field('quitarArchivos', String(foto.id));
+    expect(rechazo.status).toBe(400);
+    expect(rechazo.body.error).toContain('al menos una foto');
+    const despues = await request(app).get(`/api/publicaciones/${id}`);
+    expect(despues.body.foto).toBe(foto.url);
+    expect(despues.body.multimedia).toHaveLength(2);
   });
 
   test('mis publicaciones y eliminación', async () => {
