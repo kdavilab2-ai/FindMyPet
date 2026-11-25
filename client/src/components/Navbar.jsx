@@ -91,7 +91,7 @@ function MenuUsuario() {
     document.addEventListener('mousedown', fuera);
     return () => document.removeEventListener('mousedown', fuera);
   }, []);
-  const ir = (ruta) => { setAbierto(false); navegar(ruta); };
+  const ir = (ruta, opciones) => { setAbierto(false); navegar(ruta, opciones); };
   const opcion = 'block w-full px-4 py-2.5 text-left text-sm hover:bg-tarjeta';
   return (
     <div className="relative" ref={ref}>
@@ -112,7 +112,7 @@ function MenuUsuario() {
           <button className={opcion} onClick={() => ir('/refugios')}>💜 Refugios y donaciones</button>
           {esAdmin && <button className={opcion} onClick={() => ir('/admin')}>🛡️ Administración</button>}
           <hr className="my-1 border-borde" />
-          <button className={`${opcion} text-perdida`} onClick={() => { salir(); ir('/'); }}>Cerrar sesión</button>
+          <button className={`${opcion} text-perdida`} onClick={() => { salir(); ir('/login', { replace: true }); }}>Cerrar sesión</button>
         </div>
       )}
     </div>

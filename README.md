@@ -61,6 +61,8 @@ npm run dev                   # http://localhost:5173
 
 Crear las bases en PostgreSQL local: `CREATE DATABASE findmypet;` y `CREATE DATABASE findmypet_test;`
 
+Al abrir FindMyPet sin una sesión iniciada, verás **Iniciar sesión**. Al ingresar se abre **Inicio**, y al cerrar sesión vuelves a **Iniciar sesión**.
+
 ### Cuentas de demostración local (contraseña `Clave1234`)
 
 Usa estas cuentas ficticias solo en una base desechable. `npm run seed` borra usuarios y publicaciones de la base configurada.

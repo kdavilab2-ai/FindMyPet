@@ -41,7 +41,7 @@ export default function App() {
       {!acceso && <Navbar cabeceraPropia={cabeceraPropia} />}
       <main className="flex-1">
         <Routes>
-          <Route path="/" element={<Inicio />} />
+          <Route path="/" element={<RutaPrivada><Inicio /></RutaPrivada>} />
           <Route path="/perdidas" element={<Listado idTipo={1} />} />
           <Route path="/halladas" element={<Listado idTipo={2} />} />
           <Route path="/adopcion" element={<Listado idTipo={3} />} />
