@@ -1,6 +1,6 @@
 const net = require('node:net');
 const { spawn } = require('node:child_process');
-const { createHash } = require('node:crypto');
+const { createHash, randomBytes } = require('node:crypto');
 const { existsSync, realpathSync, mkdirSync, openSync, closeSync } = require('node:fs');
 const { resolve, join } = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -12,9 +12,11 @@ const carpetaApi = join(raiz, 'server');
 const carpetaWeb = join(raiz, 'client');
 const rutaEnv = join(carpetaApi, '.env');
 const runtime = join(raiz, '.runtime', 'windows');
-const enlace = 'http://localhost:5173';
+const demostracion = process.argv[3] === 'demo';
+const puertoWeb = demostracion ? 5174 : 5173;
+const enlace = `http://localhost:${puertoWeb}`;
 const id = createHash('sha256').update(raiz.toLowerCase()).digest('hex').slice(0, 24);
-const canal = String.raw`\\.\pipe\findmypet-${id}`;
+const canal = String.raw`\\.\pipe\findmypet-${id}${demostracion ? '-demo' : ''}`;
 const cargarApi = createRequire(join(carpetaApi, 'package.json'));
 const cargarWeb = createRequire(join(carpetaWeb, 'package.json'));
 const esperar = (ms) => new Promise((fin) => setTimeout(fin, ms));
@@ -58,10 +60,10 @@ function configuracion() {
     throw new Error('Este lanzador utiliza PostgreSQL local. Comprueba la configuración de esta copia de FindMyPet.');
   }
   const puerto = Number(actual.PORT || 4000);
-  if (!Number.isInteger(puerto) || puerto < 1 || puerto > 65535 || puerto === 5173) {
+  if (!demostracion && (!Number.isInteger(puerto) || puerto < 1 || puerto > 65535 || puerto === puertoWeb)) {
     throw new Error('El puerto del backend en server/.env es inválido o coincide con el del frontend.');
   }
-  return puerto;
+  return demostracion ? 0 : puerto;
 }
 
 async function iniciar() {
@@ -74,16 +76,16 @@ async function iniciar() {
       if (e.code === 'MODULE_NOT_FOUND') throw new Error('Faltan dependencias. Abre Instalar FindMyPet.bat.');
       throw e;
     }
-    for (const ocupado of [puerto, 5173]) {
+    for (const ocupado of [puerto, puertoWeb].filter(Boolean)) {
       const resultados = await Promise.all(['127.0.0.1', '::1'].map((host) => puertoOcupado(ocupado, host)));
       if (resultados.includes(true) && !(await control('estado'))) {
         throw new Error(`El puerto ${ocupado} ya está en uso por otro proceso. Ciérralo desde donde lo iniciaste y vuelve a probar.`);
       }
     }
     mkdirSync(runtime, { recursive: true });
-    const log = openSync(join(runtime, 'servidores.log'), 'a');
+    const log = openSync(join(runtime, demostracion ? 'servidores-demo.log' : 'servidores.log'), 'a');
     try {
-      const hijo = spawn(process.execPath, [__filename, 'servir'], {
+      const hijo = spawn(process.execPath, [__filename, 'servir', ...(demostracion ? ['demo'] : [])], {
         cwd: carpetaApi, detached: true, windowsHide: true, stdio: ['ignore', log, log],
       });
       hijo.once('error', (e) => console.error(`No se pudo abrir el proceso de FindMyPet (${e.code || 'error'}).`));
@@ -98,7 +100,8 @@ async function iniciar() {
     if (!estado && i >= 12) break;
     await esperar(250);
   }
-  throw new Error('No se pudo iniciar FindMyPet. Comprueba que PostgreSQL esté iniciado. Los detalles están en .runtime/windows/servidores.log.');
+  const archivo = demostracion ? 'servidores-demo.log' : 'servidores.log';
+  throw new Error(`No se pudo iniciar FindMyPet. Comprueba PostgreSQL. Los detalles están en .runtime/windows/${archivo}.`);
 }
 
 async function detener() {
@@ -159,7 +162,22 @@ async function servir() {
     process.chdir(carpetaApi);
     const puerto = configuracion();
     process.env.VITE_API_URL = '';
-    iniciarPostgresPortatil(new URL(process.env.DATABASE_URL));
+    const base = new URL(process.env.DATABASE_URL);
+    iniciarPostgresPortatil(base);
+    if (demostracion) {
+      const { prepararBase, poblar } = cargarApi('./db/demostracion');
+      process.env.DATABASE_URL = await prepararBase(base);
+      process.env.DB_SSL = 'false';
+      process.env.JWT_SECRET = randomBytes(32).toString('hex');
+      process.env.VITE_DEMOSTRACION = '1';
+      process.env.FRONTEND_URL = enlace;
+      process.env.CORS_ORIGIN = enlace;
+      delete process.env.GEMINI_API_KEY;
+      delete process.env.SMTP_HOST;
+      await poblar(join(runtime, '.env.demo-clave'));
+    } else {
+      process.env.VITE_DEMOSTRACION = '0';
+    }
     ({ pool } = cargarApi('./src/lib/db'));
     const { rows: [fila] } = await pool.query("SELECT to_regclass('public.usuario') AS tabla");
     if (!fila.tabla) throw new Error('Faltan tablas en PostgreSQL. Ejecuta el instalador.');
@@ -168,11 +186,11 @@ async function servir() {
     await escuchar(api, puerto, '127.0.0.1');
 
     const { createServer } = await import(pathToFileURL(cargarWeb.resolve('vite')));
-    const destino = `http://127.0.0.1:${puerto}`;
+    const destino = `http://127.0.0.1:${api.address().port}`;
     web = await createServer({
       root: carpetaWeb,
       server: {
-        host: '127.0.0.1', port: 5173, strictPort: true,
+        host: '127.0.0.1', port: puertoWeb, strictPort: true,
         proxy: { '/api': destino, '/uploads': destino },
       },
     });

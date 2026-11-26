@@ -40,6 +40,7 @@ async function transaccion(fn) {
     await cliente.query('BEGIN');
     const resultado = await fn({
       consulta: async (sql, params = []) => (await cliente.query(sql, params)).rows.map(aCamel),
+      ejecutar: (sql) => cliente.query(sql),
     });
     await cliente.query('COMMIT');
     return resultado;

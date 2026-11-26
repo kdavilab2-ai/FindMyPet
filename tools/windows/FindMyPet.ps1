@@ -1,6 +1,6 @@
 ﻿param(
     [Parameter(Mandatory)]
-    [ValidateSet('Instalar', 'Iniciar', 'Detener')]
+    [ValidateSet('Instalar', 'Iniciar', 'Detener', 'Demostracion')]
     [string] $Accion
 )
 
@@ -98,10 +98,15 @@ try {
         if ($codigo -eq 12) { Mostrar-PostgreSQL }
         if ($codigo -ne 0) { exit 1 }
         Write-Host 'Instalación lista. Abre Iniciar FindMyPet.bat para usar la aplicación.'
+    } elseif ($Accion -eq 'Demostracion') {
+        & $node $servidores iniciar demo
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        Start-Process 'http://localhost:5174'
     } else {
         $operacion = if ($Accion -eq 'Iniciar') { 'iniciar' } else { 'detener' }
         & $node $servidores $operacion
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if ($Accion -eq 'Detener') { & $node $servidores detener demo; exit $LASTEXITCODE }
         if ($Accion -eq 'Iniciar') { Start-Process 'http://localhost:5173' }
     }
 } catch {

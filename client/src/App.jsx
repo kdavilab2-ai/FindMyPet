@@ -38,6 +38,11 @@ export default function App() {
   return (
     <div className={`flex min-h-screen flex-col ${acceso ? '' : 'figma-con-navegacion'}`}>
       <SubirAlCambiar />
+      {import.meta.env.DEV && import.meta.env.VITE_DEMOSTRACION === '1' && (
+        <p className="border-b border-borde bg-panel px-4 py-2 text-center text-sm text-lavanda">
+          Demostración académica · Animales, fotos, contactos y reseñas ficticios.
+        </p>
+      )}
       {!acceso && <Navbar cabeceraPropia={cabeceraPropia} />}
       <main className="flex-1">
         <Routes>

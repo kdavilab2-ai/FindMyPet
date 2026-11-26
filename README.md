@@ -42,7 +42,7 @@ Docente: Merino Gavilanes Jonathan Eduardo
 1. Descarga o clona FindMyPet con tu cuenta autorizada de GitHub. Si descargaste un ZIP, extráelo antes de abrir los archivos.
 2. La primera vez, haz doble clic en **Instalar FindMyPet.bat**. Si aún falta la conexión local, indica los datos de tu PostgreSQL. Pulsa Enter para aceptar el servidor, puerto y usuario que aparecen entre corchetes si corresponden a tu instalación. Si PostgreSQL solicita contraseña, escríbela en la ventana del instalador. Permanece oculta.
 3. Cada vez que quieras usar la aplicación, haz doble clic en **Iniciar FindMyPet.bat**. Abre [FindMyPet](http://localhost:5173) en tu navegador y deja los servidores funcionando.
-4. Cuando termines, haz doble clic en **Detener FindMyPet.bat**. Cierra los servidores que abrió ese lanzador.
+4. Cuando termines, haz doble clic en **Detener FindMyPet.bat**. Cierra los servidores locales de FindMyPet y de la demostración.
 
 Necesitas Node.js LTS 22.12 o posterior y PostgreSQL 14 o posterior. También se admite Node.js 20 desde la versión 20.19. Si tu copia ya está configurada con el PostgreSQL portátil de FindMyPet, el lanzador lo inicia cuando hace falta. Para una instalación como servicio de Windows, comprueba en **Servicios** que PostgreSQL esté iniciado. El usuario de PostgreSQL necesita acceso a las bases y permiso para crearlas si todavía faltan.
 
@@ -50,7 +50,24 @@ El instalador completa los valores ausentes en `server/.env`, conserva los valor
 
 Al abrir FindMyPet sin una sesión iniciada, verás **Iniciar sesión**. Al ingresar se abre **Inicio**, y al cerrar sesión vuelves a **Iniciar sesión**.
 
-### Cuentas de demostración local (contraseña `Clave1234`)
+### Presentación con datos ficticios
+
+Después de instalar FindMyPet, haz doble clic en **Abrir demostracion FindMyPet.bat**. Abre [la demostración](http://localhost:5174) con una base PostgreSQL separada y un rótulo visible. El primer inicio prepara el contenido. Los siguientes conservan lo que hagas durante el ensayo y evitan duplicar los ejemplos. Usa **Detener FindMyPet.bat** para cerrar los servidores.
+
+Abre `.runtime/windows/.env.demo-clave` con el Bloc de notas para leer la clave generada para las cuentas ficticias. Usa la demostración local para estas cuentas. Los contactos están bajo el dominio reservado `.test` y las coincidencias se calculan por atributos sin enviar fotos a servicios externos.
+
+| Cuenta | Recorrido sugerido |
+| --- | --- |
+| `sofia@presentacion.findmypet.test` | Abre **Perdidas** y busca a Bruno, Lima o Michi. En sus fichas, baja a **Avistamientos** para ver fotos y observaciones. Abre la campana o **Coincidencias IA** para revisar las sugerencias de tu cuenta. |
+| `mateo@presentacion.findmypet.test` | Consulta las alertas de proximidad en la campana y los hallazgos propios en **Mis reportes**. Explora Kira, Milo y Nina en **Recuperados**. |
+| `patitas@presentacion.findmypet.test` | Abre **Mi refugio → Gestionar traslado** para ver el aviso sobre el avistamiento de Oliva. La recepción queda pendiente para que puedas mostrar cómo la confirma el refugio. |
+| `admin@presentacion.findmypet.test` | Abre **Administración** y localiza la solicitud de autorización de Red de Rescate La Ribera. |
+
+Desde **Adopción** puedes filtrar perros, gatos, aves, conejos y otros animales. Abre **Refugios y fundaciones** para consultar el directorio, las reseñas y los enlaces externos de apoyo.
+
+Las 36 fotos nuevas en `server/db/fotos-presentacion/` se generaron con la herramienta integrada de imágenes. Se pidieron cuatro cuadrículas de fotografías de celular con mascotas de distintas especies y razas, en casas, refugios o espacios públicos, y tomas distintas para los avistamientos. La historia de Michi reutiliza dos fotos existentes de `server/db/fotos-demo/`.
+
+### Cuentas de las bases locales preparadas anteriormente (contraseña `Clave1234`)
 
 Estas cuentas ficticias están disponibles en bases que el equipo ya preparó para demostración.
 
