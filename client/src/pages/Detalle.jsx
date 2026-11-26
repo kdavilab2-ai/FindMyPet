@@ -147,6 +147,7 @@ export default function Detalle() {
               )}
               <div className="flex flex-wrap gap-2">
                 {p.esAutor && <Link to={`/publicaciones/${id}/editar`} className="btn btn-secundario">✏️ Editar</Link>}
+                {p.esAutor && p.idTipo === 2 && !p.custodia && <Link to={`/publicaciones/${id}/editar?traslado=1`} className="btn btn-secundario">Informar traslado a un refugio</Link>}
                 {p.esAutor && p.idTipo === 1 && <button className="btn btn-secundario" onClick={descargarCartel} disabled={generando}>📄 {generando ? 'Generando…' : 'Cartel PDF'}</button>}
                 {p.esAutor && p.idTipo !== 3 && <Link to={`/coincidencias?publicacion=${id}`} className="btn btn-secundario">🤖 Coincidencias</Link>}
                 {esAdmin && !p.esAutor ? <Link to="/admin?vista=publicaciones" className="btn btn-secundario">Ir a moderación</Link> : <button className="btn btn-peligro" onClick={() => setConfirmarEliminar(true)}>Eliminar</button>}
@@ -168,7 +169,15 @@ export default function Detalle() {
               ) : (
                 <EnlacesContacto contactos={contactos} nombre={nombre} />
               )}
-              {p.idTipo === 1 && p.idEstado === 1 && <p className="text-xs text-suave">¿Viste un animal parecido? <Link to="/reportar?tipo=2" className="text-lavanda underline">Registra un avistamiento</Link>. Si encontramos similitudes, avisaremos al propietario.</p>}
+              {p.idTipo === 1 && p.idEstado === 1 && (
+                <>
+                  <p className="text-xs text-suave">¿Viste un animal parecido? <Link to="/reportar?tipo=2" className="text-lavanda underline">Registra un avistamiento</Link>. Si encontramos similitudes, avisaremos al propietario.</p>
+                  <div className="space-y-2 border-t border-borde pt-3">
+                    <p className="text-sm text-suave">Si ya entregaste al animal, informa qué refugio lo recibió para que pueda coordinar con los posibles propietarios.</p>
+                    <Link to="/reportar?tipo=2&traslado=1" className="btn btn-secundario w-full sm:w-auto">Informar traslado a un refugio</Link>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
