@@ -156,19 +156,22 @@ export default function Navbar({ cabeceraPropia = false }) {
 export function NavInferior() {
   const item = (ruta, icono, texto) => (
     <NavLink to={ruta} end={ruta === '/'} className="figma-item-inferior">
-      <span><IconoFigma nombre={icono} /></span>{texto}
+      <span className="figma-item-inferior-icono"><IconoFigma nombre={icono} /></span>
+      <span className="figma-item-inferior-texto">{texto}</span>
     </NavLink>
   );
   return (
     <nav className="figma-nav-inferior" aria-label="Navegación móvil">
-      {item('/', 'inicio', 'Inicio')}
-      {item('/perdidas', 'lupaMenu', 'Perdidas')}
       <Link to="/reportar" className="figma-mas-nav" aria-label="Reportar mascota">
-        <span><IconoFigma nombre="mas" /></span>
+        <IconoFigma nombre="mas" />
       </Link>
-      {item('/recuperados', 'pataMenu', 'Recuperados')}
-      {item('/adopcion', 'adopcion', 'Adopción')}
-      {item('/refugios', 'inicio', 'Refugios')}
+      <div className="figma-destinos-inferiores">
+        {item('/', 'inicio', 'Inicio')}
+        {item('/perdidas', 'lupaMenu', 'Perdidas')}
+        {item('/recuperados', 'pataMenu', 'Recuperados')}
+        {item('/adopcion', 'adopcion', 'Adopción')}
+        {item('/refugios', 'inicio', 'Refugios')}
+      </div>
     </nav>
   );
 }

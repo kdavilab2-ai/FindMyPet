@@ -186,18 +186,22 @@
   .figma-acciones-nav > div > button { padding: 3px; font-size: 16px; }
   .figma-reportar-nav { min-width: 0; min-height: 42px; padding-inline: 12px; font-size: 13px; }
   .figma-ingresar-nav { font-size: 12px; padding: 3px; }
-  .figma-con-navegacion { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
-  .figma-nav-inferior {
-    --diametro-reportar: clamp(44px, 14vw, 56px);
-    position: fixed; inset: auto 0 0; z-index: 30; display: grid; align-items: center;
-    grid-template-columns: repeat(2,minmax(0,3fr)) var(--diametro-reportar) minmax(0,2.52fr) minmax(0,1.8fr) minmax(0,1.68fr);
-    min-height: 63px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--color-borde); background: var(--nav-figma);
+  .figma-con-navegacion {
+    --diametro-reportar: clamp(44px, 13vw, 52px);
+    --alto-destinos-movil: 58px;
+    --espacio-reportar: 6px;
+    padding-bottom: calc(var(--diametro-reportar) + var(--alto-destinos-movil) + var(--espacio-reportar) + 6px + env(safe-area-inset-bottom));
   }
-  .figma-item-inferior { display: grid; justify-items: center; gap: 4px; min-width: 0; padding: 4px 0; color: var(--suave-figma); font-size: clamp(8.4px, 2.6vw, 11px); text-align: center; }
-  .figma-item-inferior > span { display: grid; place-items: center; height: 24px; }
+  .figma-nav-inferior { position: fixed; inset: auto 0 0; z-index: 30; display: grid; gap: var(--espacio-reportar); pointer-events: none; }
+  .figma-destinos-inferiores {
+    display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); min-height: var(--alto-destinos-movil);
+    padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--color-borde); background: var(--nav-figma); pointer-events: auto;
+  }
+  .figma-item-inferior { display: grid; grid-template-columns: minmax(0,1fr); align-content: center; justify-items: center; gap: 3px; min-width: 0; padding: 4px 0; color: var(--suave-figma); font-size: clamp(8px, 3vw, 11px); text-align: center; }
+  .figma-item-inferior-icono { display: grid; place-items: center; height: 24px; }
+  .figma-item-inferior-texto { max-width: 100%; overflow-wrap: anywhere; }
   .figma-item-inferior[aria-current='page'] { color: var(--color-violeta); font-weight: 700; }
-  .figma-mas-nav { display: grid; justify-items: center; margin-top: -20px; }
-  .figma-mas-nav > span { display: grid; place-items: center; width: var(--diametro-reportar); height: var(--diametro-reportar); border-radius: 50%; background: var(--gradiente-figma); }
+  .figma-mas-nav { display: grid; place-items: center; justify-self: center; width: var(--diametro-reportar); height: var(--diametro-reportar); border-radius: 50%; background: var(--gradiente-figma); box-shadow: 0 3px 12px #14122b; pointer-events: auto; }
 
   .figma-inicio { grid-template-columns: minmax(0,1fr) minmax(72px,92px) minmax(70px,84px); column-gap: 6px; grid-template-areas: 'titulo titulo titulo' 'buscar buscar buscar' 'resumen resumen resumen' 'recientes especie estado' 'resultados resultados resultados' 'ver ver ver'; padding-top: 6px; }
   .figma-titulo-inicio { margin-bottom: 12px; }
@@ -271,6 +275,15 @@
   .figma-mascota-reporte:focus-visible > span:not(.figma-foto) { outline: 2px solid var(--color-lavanda); }
   .figma-reporte-tipo,.figma-reporte-fecha { font-size: 12px; }
   .figma-reporte-acciones { gap: 14px; margin-top: 9px; }
+}
+
+@media (max-width: 359px) {
+  .figma-nav { padding-inline: clamp(10px, 4vw, 16px); }
+  .figma-acciones-nav .figma-reportar-nav { display: none; }
+}
+
+@media (max-width: 300px) {
+  .figma-item-inferior-texto { letter-spacing: -0.025em; }
 }
 
 @media (max-width: 899px) {
