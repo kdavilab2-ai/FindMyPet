@@ -5,7 +5,7 @@
 const { consulta, una, transaccion } = require('../lib/db');
 const ia = require('../lib/ia');
 const { distanciaKm, tieneCoordenadas } = require('../lib/geo');
-const { TIPO, ESTADO, CRITERIO, ESTADO_COINCIDENCIA, TIPO_NOTIFICACION } = require('../lib/constantes');
+const { TIPO, ESTADO, CRITERIO, ESTADO_COINCIDENCIA, TIPO_NOTIFICACION, TIPO_MULTIMEDIA, MAX_ARCHIVOS } = require('../lib/constantes');
 const { avisarCaso } = require('./avistamientos.service');
 
 const UMBRAL = 60; // porcentaje mínimo para sugerir una coincidencia
@@ -16,6 +16,7 @@ const PESO_SENAS = 10;
 const DATOS_REPORTE = `
   SELECT p.id_publicacion, p.id_usuario, p.id_tipo, p.id_estado, p.id_especie, p.id_raza, p.id_tamano,
          p.nombre_animal, p.descripcion, rz.nombre AS raza, r.fecha_evento, to_char(r.hora_evento, 'HH24:MI') AS hora_evento,
+         r.id_desaparicion_origen,
          u.latitud, u.longitud, u.id_sector, s.id_canton, c.id_provincia, s.nombre AS sector, c.nombre AS canton,
          COALESCE((SELECT array_agg(pc.id_color) FROM publicacion_color pc WHERE pc.id_publicacion = p.id_publicacion), '{}') AS colores
   FROM publicacion p
@@ -94,13 +95,13 @@ function porcentajeTotal(puntajes) {
   return Math.round((suma / pesos) * 100) / 100;
 }
 
-async function primeraImagen(idPublicacion) {
-  const fila = await una(
+async function fotosPublicacion(idPublicacion, limite) {
+  const filas = await consulta(
     `SELECT ma.mime, ma.datos FROM multimedia m JOIN multimedia_archivo ma ON ma.id_multimedia = m.id_multimedia
-     WHERE m.id_publicacion = $1 AND m.id_tipo_multimedia = 1 ORDER BY m.id_multimedia LIMIT 1`,
-    [idPublicacion],
+     WHERE m.id_publicacion = $1 AND m.id_tipo_multimedia = $2 ORDER BY m.id_multimedia LIMIT $3`,
+    [idPublicacion, TIPO_MULTIMEDIA.IMAGEN, limite],
   );
-  return fila ? { mime: fila.mime, buffer: fila.datos } : null;
+  return filas.map((fila) => ({ mime: fila.mime, buffer: fila.datos }));
 }
 
 /**
@@ -123,7 +124,8 @@ async function analizarReporte(idPublicacion) {
     ],
   );
 
-  const fotoReporte = ia.disponible() ? await primeraImagen(idPublicacion) : null;
+  const compararFotos = ia.disponible();
+  let fotosReporte;
   let nuevas = 0;
 
   for (const candidato of candidatos) {
@@ -133,14 +135,16 @@ async function analizarReporte(idPublicacion) {
     const puntajes = puntuarAtributos(perdida, hallada);
     if (!puntajes) continue;
 
-    // Solo se compara con IA si los atributos ya son razonablemente parecidos (ahorra consultas)
-    if (fotoReporte && porcentajeTotal(puntajes) >= 45) {
-      const fotoCandidato = await primeraImagen(candidato.idPublicacion);
-      if (fotoCandidato) {
-        const similitud = await ia.compararImagenes(
-          esPerdida ? fotoReporte : fotoCandidato,
-          esPerdida ? fotoCandidato : fotoReporte,
-        );
+    // Las fotos solo se comparan con el reporte al que pertenece la sección Avistamientos.
+    if (compararFotos && hallada.idDesaparicionOrigen === perdida.idPublicacion && porcentajeTotal(puntajes) >= 45) {
+      fotosReporte ??= await fotosPublicacion(idPublicacion, esPerdida ? 1 : MAX_ARCHIVOS);
+      if (fotosReporte.length) {
+        const fotosCandidato = await fotosPublicacion(candidato.idPublicacion, esPerdida ? MAX_ARCHIVOS : 1);
+        const [referencia] = esPerdida ? fotosReporte : fotosCandidato;
+        const fotosAvistamiento = esPerdida ? fotosCandidato : fotosReporte;
+        const similitud = referencia && fotosAvistamiento.length
+          ? await ia.compararImagenes(referencia, fotosAvistamiento)
+          : null;
         if (similitud !== null) puntajes[CRITERIO.IMAGEN] = similitud;
       }
     }

@@ -391,7 +391,7 @@ export default function Reportar() {
           {tipo !== 3 && (
             <div className="rounded-2xl border border-violeta/30 bg-violeta/5 p-4 text-sm text-suave">
               <p className="font-bold text-lavanda">Posibles coincidencias</p>
-              <p className="mt-1">{tipo === 1 ? 'Compararemos tu reporte con los avistamientos y te avisaremos si hay alguna coincidencia.' : 'Compararemos el avistamiento con los reportes de mascotas perdidas y avisaremos a sus propietarios si hay similitudes.'} {catalogos.iaDisponible ? 'La comparación de fotos complementa los demás criterios.' : 'La comparación usa los datos del animal y del reporte.'} <Link to="/coincidencias" className="text-lavanda underline">Ver coincidencias</Link></p>
+              <p className="mt-1">{tipo === 1 ? 'Compararemos tu reporte con los avistamientos y te avisaremos si hay alguna coincidencia.' : 'Compararemos los datos del hallazgo con los reportes de mascotas perdidas y avisaremos a sus propietarios si hay similitudes.'} {catalogos.iaDisponible && (tipo === 1 || vinculado) && 'La IA compara la foto principal de la mascota perdida con las fotos de Avistamientos de su ficha.'} <Link to="/coincidencias" className="text-lavanda underline">Ver coincidencias</Link></p>
             </div>
           )}
         </aside>

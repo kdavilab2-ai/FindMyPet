@@ -120,3 +120,67 @@ describe('RF-26: alertas por proximidad', () => {
     expect(notif.body.datos[0].mensaje).toContain('Canela');
   });
 });
+
+test('compara todas las fotos del aporte vinculado y usa solo atributos en las otras combinaciones', async () => {
+  const datos = { idEspecie: 4, idRaza: '', nombreAnimal: 'Conejo de prueba' };
+  const perdida = (await publicar(ana.token, datos)).body;
+  const otra = (await publicar(vecino.token, datos)).body;
+  const suelto = (await publicar(luis.token, { ...datos, tipo: 2 })).body;
+  const vinculado = (await publicar(luis.token, { ...datos, tipo: 2, idDesaparicionOrigen: perdida.id }, { fotos: 2 })).body;
+  const fotos = await db.consulta(
+    `SELECT a.mime, a.datos AS buffer FROM multimedia m JOIN multimedia_archivo a USING (id_multimedia)
+     WHERE m.id_publicacion = $1 ORDER BY m.id_multimedia`, [vinculado.id]);
+  const fotoPerdida = await db.una(
+    `SELECT a.mime, a.datos AS buffer FROM multimedia m JOIN multimedia_archivo a USING (id_multimedia)
+     WHERE m.id_publicacion = $1 ORDER BY m.id_multimedia LIMIT 1`, [perdida.id]);
+  expect(fotos).toHaveLength(2);
+  const disponibilidad = jest.spyOn(ia, 'disponible').mockReturnValue(true);
+  const comparar = jest.spyOn(ia, 'compararImagenes').mockResolvedValue(86);
+  try {
+    expect(await analizarReporte(suelto.id)).toBe(2);
+    expect(comparar).not.toHaveBeenCalled();
+    expect(await analizarReporte(otra.id)).toBe(1);
+    expect(comparar).not.toHaveBeenCalled();
+    expect(await analizarReporte(perdida.id)).toBe(1);
+    expect(comparar).toHaveBeenCalledTimes(1);
+    expect(comparar).toHaveBeenCalledWith(fotoPerdida, fotos);
+    comparar.mockClear();
+    expect(await analizarReporte(vinculado.id)).toBe(0);
+    expect(comparar).toHaveBeenCalledTimes(1);
+    expect(comparar).toHaveBeenCalledWith(fotoPerdida, fotos);
+
+    const resultado = (p) => request(app).get(`/api/coincidencias?publicacion=${p.id}`)
+      .set(conToken(p.id === perdida.id ? ana.token : vecino.token));
+    const propia = (await resultado(perdida)).body;
+    expect(propia.find((c) => c.encontrada.id === vinculado.id).criterios).toContainEqual({ criterio: 'Imagen', puntaje: 86 });
+    expect(propia.find((c) => c.encontrada.id === suelto.id).criterios).not.toContainEqual(expect.objectContaining({ criterio: 'Imagen' }));
+    expect((await resultado(otra)).body.find((c) => c.encontrada.id === vinculado.id).criterios)
+      .not.toContainEqual(expect.objectContaining({ criterio: 'Imagen' }));
+    comparar.mockResolvedValue(null);
+    await analizarReporte(vinculado.id);
+    const sinIA = (await resultado(perdida)).body.find((c) => c.encontrada.id === vinculado.id);
+    expect(sinIA.criterios).not.toContainEqual(expect.objectContaining({ criterio: 'Imagen' }));
+  } finally {
+    comparar.mockRestore();
+    disponibilidad.mockRestore();
+  }
+});
+
+test('envía la referencia y las fotos del mismo avistamiento juntas al comparador', async () => {
+  const ambiente = jest.replaceProperty(process, 'env', { ...process.env, NODE_ENV: 'development', GEMINI_API_KEY: 'prueba-sin-red' });
+  const solicitud = jest.spyOn(global, 'fetch').mockResolvedValue({
+    ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: '{"similitud": 91}' }] } }] }),
+  });
+  try {
+    const foto = (contenido) => ({ mime: 'image/webp', buffer: Buffer.from(contenido) });
+    expect(await ia.compararImagenes(foto('referencia'), [foto('calle'), foto('parque')])).toBe(91);
+    expect(solicitud).toHaveBeenCalledTimes(1);
+    const partes = JSON.parse(solicitud.mock.calls[0][1].body).contents[0].parts;
+    expect(partes.slice(0, 3).map((p) => Buffer.from(p.inline_data.data, 'base64').toString()))
+      .toEqual(['referencia', 'calle', 'parque']);
+    expect(partes[3].text).toContain('mayor similitud');
+  } finally {
+    solicitud.mockRestore();
+    ambiente.restore();
+  }
+});

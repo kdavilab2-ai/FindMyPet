@@ -48,8 +48,8 @@ test('registra un avistamiento sin similitudes y mantiene vigente la desaparici�
   expect((await publicar(testigo.token, { situacionTraslado: 'realizado', idRefugioCustodia: refugio.usuario.refugio.id })).status).toBe(400);
 });
 
-test('analiza fotos si el servicio está disponible, registra la similitud y avisa al propietario', async () => {
-  const r = await publicarAvistamiento({ horaEvento: '09:15', situacionTraslado: 'realizado', idRefugioCustodia: refugio.usuario.refugio.id, notasCustodia: 'Recepción en el área de cuarentena', correoContacto: 'testigo-aviso@findmypet.test' });
+test('analiza las fotos del avistamiento vinculado, registra la similitud y avisa al propietario', async () => {
+  const r = await publicarAvistamiento({ idDesaparicionOrigen: perdida.id, horaEvento: '09:15', situacionTraslado: 'realizado', idRefugioCustodia: refugio.usuario.refugio.id, notasCustodia: 'Recepción en el área de cuarentena', correoContacto: 'testigo-aviso@findmypet.test' });
   expect(r.status).toBe(201);
   hallada = r.body;
   expect(hallada.custodia).toMatchObject({ nombre: 'Refugio Traslado', confirmadaEn: null });
@@ -57,7 +57,7 @@ test('analiza fotos si el servicio está disponible, registra la similitud y avi
   jest.spyOn(ia, 'disponible').mockReturnValue(true);
   const comparar = jest.spyOn(ia, 'compararImagenes').mockResolvedValue(81);
   expect(await analizarReporte(hallada.id)).toBe(1);
-  expect(comparar).toHaveBeenCalledWith(expect.objectContaining({ mime: 'image/webp', buffer: expect.any(Buffer) }), expect.objectContaining({ buffer: expect.any(Buffer) }));
+  expect(comparar).toHaveBeenCalledWith(expect.objectContaining({ mime: 'image/webp', buffer: expect.any(Buffer) }), [expect.objectContaining({ buffer: expect.any(Buffer) })]);
   const [sugerencia] = (await coincidencias(propietario)).body;
   expect(sugerencia).toMatchObject({ idEstado: 1, encontrada: { id: hallada.id, horaEvento: '09:15', custodia: { nombre: 'Refugio Traslado' } } });
   expect(sugerencia.criterios).toContainEqual({ criterio: 'Imagen', puntaje: 81 });

@@ -99,7 +99,7 @@ En una publicación de mascota perdida, abre **¿La has visto?**. Usa **Registra
 
 Desde **Mi refugio → Gestionar traslado**, el refugio confirma la recepción, consulta los contactos autorizados de quien reportó el avistamiento y puede escribir por privado a los posibles propietarios. Recibe avisos de nuevas coincidencias, de la posible identificación y de la confirmación de recuperación de un reporte vinculado.
 
-El análisis sugiere similitudes y avisa a los propietarios. Sin Gemini usa ubicación, fechas y atributos locales, incluidas señas comparables en la descripción. Con `GEMINI_API_KEY` también puede comparar las fotos. Indicar una posible identificación deja la desaparición activa. El propietario confirma la recuperación en el estado de su reporte.
+El análisis sugiere similitudes y avisa a los propietarios. Usa ubicación, fechas y atributos locales, incluidas señas comparables en la descripción. Con `GEMINI_API_KEY`, la comparación visual usa la foto principal de la mascota perdida y las fotos del aporte publicado en **Avistamientos** de esa ficha. Los reportes independientes siguen participando mediante sus atributos. Indicar una posible identificación deja la desaparición activa. El propietario confirma la recuperación en el estado de su reporte.
 
 ## Despliegue
 - **Base de datos:** Neon → crear proyecto → copiar la *connection string* (incluye `?sslmode=require`).

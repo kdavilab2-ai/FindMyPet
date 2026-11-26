@@ -55,7 +55,7 @@ export default function Coincidencias() {
         <div>
           <h1 className="titulo-pagina">Posibles coincidencias</h1>
           <p className="mt-1 max-w-2xl text-sm text-suave">
-            Comparamos desapariciones y avistamientos por especie, raza, color, tamaño, ubicación, fecha y, cuando está disponible, similitud visual. Puedes indicar que podría ser tu mascota y confirmar su recuperación por separado en tu reporte.
+            Comparamos especie, raza, color, tamaño, ubicación y fecha. Cuando la IA está disponible, compara la foto principal de la mascota perdida con las fotos publicadas en Avistamientos de su ficha. Puedes indicar que podría ser tu mascota y confirmar su recuperación desde el reporte.
           </p>
         </div>
         {publicacion && <button className="btn btn-primario" onClick={analizar} disabled={analizando}>{analizando ? 'Analizando…' : '🤖 Analizar ahora'}</button>}

@@ -58,18 +58,19 @@ async function validarImagen(buffer, mime) {
 }
 
 /**
- * Parte de RF-09: compara la foto de una mascota desaparecida con la de un animal encontrado.
+ * Parte de RF-09: compara la foto de referencia con las fotos de un avistamiento de esa ficha.
  * Devuelve un puntaje de 0 a 100, o null si no hay IA disponible.
  */
-async function compararImagenes(a, b) {
-  if (!disponible()) return null;
+async function compararImagenes(referencia, fotosAvistamiento) {
+  if (!disponible() || !fotosAvistamiento.length) return null;
   try {
     const r = await consultarGemini([
-      imagen(a.buffer, a.mime),
-      imagen(b.buffer, b.mime),
+      imagen(referencia.buffer, referencia.mime),
+      ...fotosAvistamiento.map((foto) => imagen(foto.buffer, foto.mime)),
       {
-        text: 'Las dos fotos muestran animales. Estima la probabilidad (0 a 100) de que sean el MISMO animal '
-          + 'según especie, color, manchas, forma de orejas, tamaño y rasgos visibles. '
+        text: 'La primera foto es la referencia de la mascota perdida. Cada foto posterior es del mismo avistamiento reportado. '
+          + 'Compara cada foto posterior con la primera según especie, color, manchas, forma de orejas, tamaño y rasgos visibles. '
+          + 'Devuelve la mayor similitud (0 a 100) observada entre la referencia y una foto del avistamiento. '
           + 'Responde solo JSON: {"similitud": number}.',
       },
     ]);
