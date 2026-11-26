@@ -218,10 +218,6 @@ CREATE TABLE IF NOT EXISTS custodia_refugio (
   informada_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   confirmada_en TIMESTAMPTZ
 );
-ALTER TABLE custodia_refugio ADD COLUMN IF NOT EXISTS entregada_en TIMESTAMPTZ;
-ALTER TABLE custodia_refugio ADD COLUMN IF NOT EXISTS persona_receptora VARCHAR(120);
--- Evidencia privada de custodia, fuera de la galería y del análisis de coincidencias.
-ALTER TABLE custodia_refugio ADD COLUMN IF NOT EXISTS foto_entrega BYTEA;
 CREATE INDEX IF NOT EXISTS idx_custodia_refugio ON custodia_refugio(id_refugio, informada_en DESC);
 
 CREATE TABLE IF NOT EXISTS mensaje_avistamiento (

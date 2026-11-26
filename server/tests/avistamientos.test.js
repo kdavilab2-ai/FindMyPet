@@ -1,4 +1,4 @@
-const { app, db, request, limpiarBD, cerrarBD, crearUsuario, publicar, conToken, datosBase, imagenPrueba } = require('./ayudas');
+const { app, db, request, limpiarBD, cerrarBD, crearUsuario, publicar, conToken, datosBase } = require('./ayudas');
 const { analizarReporte } = require('../src/services/coincidencias.service');
 const ia = require('../src/lib/ia');
 
@@ -149,77 +149,10 @@ test('permite informar un traslado después de publicar y descarta avistamientos
   const visto = (await publicarAvistamiento({ nombreAnimal: 'Avistado sin traslado', horaEvento: '11:30' })).body;
   expect(visto.custodia).toBeNull();
   expect(await analizarReporte(visto.id)).toBe(1);
-  const antes = (await detalle(visto.id)).body;
-  const totalAntes = await db.una('SELECT COUNT(*)::int AS total FROM publicacion');
-  const coincidenciaAntes = (await request(app).get(`/api/coincidencias?publicacion=${segundoPerdido.id}`).set(conToken(propietario.token))).body
-    .find((c) => c.encontrada.id === visto.id);
-  expect(coincidenciaAntes).toBeDefined();
-
-  const ruta = `/api/publicaciones/${visto.id}/custodia`;
-  const fecha = new Date(Date.now() - 60_000).toISOString();
-  const datos = { idRefugioCustodia: refugio.usuario.refugio.id, entregadaEn: fecha };
-  const registrar = (u, cambios = {}) => request(app).post(ruta).set(conToken(u.token)).send({ ...datos, ...cambios });
-  expect((await request(app).post(ruta).send(datos)).status).toBe(401);
-  expect((await registrar(visitante)).status).toBe(403);
-  expect((await registrar(refugio)).status).toBe(403);
-  expect((await registrar(testigo, { entregadaEn: '2024-02-30T10:00:00.000Z' })).status).toBe(400);
-  expect((await registrar(testigo, { entregadaEn: new Date(Date.now() + 60_000).toISOString() })).status).toBe(400);
-  expect((await registrar(testigo, { entregadaEn: '' })).status).toBe(400);
-  expect((await registrar(testigo, { idRefugioCustodia: '' })).status).toBe(400);
-  expect((await registrar(testigo, { idRefugioCustodia: otroRefugio.usuario.refugio.id })).status).toBe(400);
-  const adjuntar = () => request(app).post(ruta).set(conToken(testigo.token))
-    .field('idRefugioCustodia', datos.idRefugioCustodia).field('entregadaEn', fecha);
-  expect((await adjuntar().attach('fotoEntrega', Buffer.from('imagen inválida'), { filename: 'prueba.jpg', contentType: 'image/jpeg' })).status).toBe(400);
-  expect((await detalle(visto.id)).body.custodia).toBeNull();
-
-  const traslado = await adjuntar().field('personaReceptora', 'Recepción de prueba')
-    .field('notasCustodia', 'Necesita agua y un lugar tranquilo')
-    .attach('fotoEntrega', await imagenPrueba(), { filename: 'entrega.jpg', contentType: 'image/jpeg' });
-  expect(traslado.status).toBe(201);
-  expect(traslado.body).toEqual({ id: visto.id });
-  expect((await registrar(testigo)).status).toBe(409);
-  const despues = (await detalle(visto.id)).body;
-  expect(despues).toEqual({ ...antes, custodia: expect.objectContaining({ idRefugio: datos.idRefugioCustodia, confirmadaEn: null }) });
-  expect(await db.una('SELECT COUNT(*)::int AS total FROM publicacion')).toEqual(totalAntes);
-  const coord = (u) => request(app).get(`/api/publicaciones/${visto.id}/coordinacion`).set(conToken(u.token));
-  const privada = (u) => request(app).get(`${ruta}/foto`).set(conToken(u.token));
-  const seguimiento = await coord(refugio);
-  expect(seguimiento.body).toMatchObject({
-    notas: 'Necesita agua y un lugar tranquilo', puedeConfirmar: true,
-    entrega: { fecha, personaReceptora: 'Recepción de prueba', tieneFoto: true },
-    coincidencias: [expect.objectContaining({ id: segundoPerdido.id, porcentaje: coincidenciaAntes.porcentaje, destino: propietario.id })],
-  });
-  expect((await coord(testigo)).body.entrega).toEqual(seguimiento.body.entrega);
-  expect((await coord(propietario)).body.entrega).toEqual({ fecha, personaReceptora: null, tieneFoto: false });
-  expect((await coord(visitante)).status).toBe(403);
-  expect((await privada(testigo)).status).toBe(200);
-  const imagen = await privada(refugio);
-  expect(imagen.status).toBe(200);
-  expect(imagen.headers).toMatchObject({ 'content-type': 'image/webp', 'cache-control': 'no-store' });
-  expect(imagen.body.subarray(8, 12).toString()).toBe('WEBP');
-  expect((await privada(propietario)).status).toBe(403);
-  expect((await privada(otroRefugio)).status).toBe(403);
-  expect((await request(app).get(`${ruta}/foto`)).status).toBe(401);
-  for (const u of [refugio, propietario]) {
-    expect((await notificaciones(u)).body.datos.filter((n) => n.idPublicacion === visto.id && n.mensaje.includes('Se informó el traslado'))).toHaveLength(1);
-  }
+  const actualizar = request(app).put(`/api/publicaciones/${visto.id}`).set(conToken(testigo.token));
+  for (const [k, v] of Object.entries(await datosBase({ tipo: 2, idRefugioCustodia: refugio.usuario.refugio.id }))) actualizar.field(k, String(v));
+  const traslado = await actualizar;
+  expect(traslado.body).toMatchObject({ horaEvento: '11:30', custodia: { idRefugio: refugio.usuario.refugio.id, confirmadaEn: null } });
+  expect((await notificaciones(propietario)).body.datos).toContainEqual(expect.objectContaining({ tipo: 'Avistamiento', idPublicacion: visto.id }));
   expect((await detalle(segundoPerdido.id)).body.idEstado).toBe(1);
-  const confirmar = (u) => request(app).patch(`${ruta}/confirmar`).set(conToken(u.token));
-  expect((await confirmar(otroRefugio)).status).toBe(403);
-  expect((await confirmar(refugio)).status).toBe(204);
-  expect((await coord(refugio)).body.refugio.confirmadaEn).toBeTruthy();
-  expect((await detalle(segundoPerdido.id)).body.idEstado).toBe(1);
-});
-
-test('acepta una entrega sin datos opcionales y solo en avistamientos existentes', async () => {
-  const datos = { idRefugioCustodia: refugio.usuario.refugio.id, entregadaEn: new Date().toISOString() };
-  const registrar = (id, u) => request(app).post(`/api/publicaciones/${id}/custodia`).set(conToken(u.token)).send(datos);
-  expect((await registrar(perdida.id, propietario)).status).toBe(404);
-  expect((await registrar(999999, testigo)).status).toBe(404);
-  const visto = (await publicarAvistamiento({ idEspecie: 2, idRaza: '' })).body;
-  expect((await registrar(visto.id, testigo)).status).toBe(201);
-  const ruta = `/api/publicaciones/${visto.id}`;
-  const coordinacion = await request(app).get(`${ruta}/coordinacion`).set(conToken(testigo.token));
-  expect(coordinacion.body).toMatchObject({ notas: null, entrega: { fecha: datos.entregadaEn, personaReceptora: null, tieneFoto: false } });
-  expect((await request(app).get(`${ruta}/custodia/foto`).set(conToken(testigo.token))).status).toBe(404);
 });

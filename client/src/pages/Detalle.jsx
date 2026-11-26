@@ -7,7 +7,6 @@ import Mapa from '../components/Mapa';
 import CoordinacionAvistamiento from '../components/CoordinacionAvistamiento';
 import ConfirmarRecuperacion from '../components/ConfirmarRecuperacion';
 import EnlacesContacto from '../components/EnlacesContacto';
-import FormularioTraslado from '../components/FormularioTraslado';
 import {
   Alerta, Cargando, ESTILO_TIPO, IconoEspecie, InsigniaEstado, InsigniaTipo, Modal, formatoFecha, formatoFechaHora,
 } from '../components/Comunes';
@@ -38,7 +37,6 @@ export default function Detalle() {
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
   const [confirmarRecuperar, setConfirmarRecuperar] = useState(false);
   const [generando, setGenerando] = useState(false);
-  const [trasladoAbierto, setTrasladoAbierto] = useState(null);
 
   const cargar = useCallback(() => api.get(`/publicaciones/${id}`).then(setP).catch((e) => setError(e.message)), [id]);
   useEffect(() => { cargar(); }, [cargar]);
@@ -149,19 +147,11 @@ export default function Detalle() {
               )}
               <div className="flex flex-wrap gap-2">
                 {p.esAutor && <Link to={`/publicaciones/${id}/editar`} className="btn btn-secundario">✏️ Editar</Link>}
-                {p.esAutor && p.idTipo === 2 && !p.custodia && (
-                  <button type="button" className="btn btn-secundario" aria-expanded={trasladoAbierto === id}
-                    aria-controls={trasladoAbierto === id ? 'formulario-traslado' : undefined}
-                    onClick={() => setTrasladoAbierto(trasladoAbierto === id ? null : id)}>Ya fue trasladado a un refugio</button>
-                )}
+                {p.esAutor && p.idTipo === 2 && !p.custodia && <Link to={`/publicaciones/${id}/editar?traslado=1`} className="btn btn-secundario">Informar traslado a un refugio</Link>}
                 {p.esAutor && p.idTipo === 1 && <button className="btn btn-secundario" onClick={descargarCartel} disabled={generando}>📄 {generando ? 'Generando…' : 'Cartel PDF'}</button>}
                 {p.esAutor && p.idTipo !== 3 && <Link to={`/coincidencias?publicacion=${id}`} className="btn btn-secundario">🤖 Coincidencias</Link>}
                 {esAdmin && !p.esAutor ? <Link to="/admin?vista=publicaciones" className="btn btn-secundario">Ir a moderación</Link> : <button className="btn btn-peligro" onClick={() => setConfirmarEliminar(true)}>Eliminar</button>}
               </div>
-              {p.esAutor && p.idTipo === 2 && !p.custodia && trasladoAbierto === id && (
-                <FormularioTraslado key={id} id={id} alCancelar={() => setTrasladoAbierto(null)}
-                  alGuardar={async () => { await cargar(); setTrasladoAbierto(null); setAviso('Entrega registrada. Avisamos al refugio.'); }} />
-              )}
             </div>
           )}
 
@@ -183,8 +173,8 @@ export default function Detalle() {
                 <>
                   <p className="text-xs text-suave">¿Viste un animal parecido? <Link to="/reportar?tipo=2" className="text-lavanda underline">Registra un avistamiento</Link>. Si encontramos similitudes, avisaremos al propietario.</p>
                   <div className="space-y-2 border-t border-borde pt-3">
-                    <p className="text-sm text-suave">Si ya registraste el avistamiento y entregaste al animal, abre tu reporte para informar qué refugio lo recibió.</p>
-                    <Link to="/mis-reportes?tipo=2" className="btn btn-secundario w-full sm:w-auto">Informar traslado a un refugio</Link>
+                    <p className="text-sm text-suave">Si ya entregaste al animal, informa qué refugio lo recibió para que pueda coordinar con los posibles propietarios.</p>
+                    <Link to="/reportar?tipo=2&traslado=1" className="btn btn-secundario w-full sm:w-auto">Informar traslado a un refugio</Link>
                   </div>
                 </>
               )}

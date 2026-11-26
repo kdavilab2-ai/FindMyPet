@@ -108,6 +108,7 @@
 .figma-selector-tipo .btn { min-width: 0; }
 .figma-formulario-reporte { display: grid; grid-template-columns: minmax(0,1.92fr) minmax(240px,1fr); gap: 22px 30px; margin-top: 22px; }
 .figma-error-reporte { grid-column: 1 / -1; }
+.figma-traslado-reporte { grid-column: 1 / -1; min-width: 0; }
 .figma-campos-reporte { display: grid; gap: 16px; padding: clamp(20px,2.5vw,36px); background: var(--superficie-figma); }
 .figma-rasgos-reporte { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px 24px; }
 .figma-nombre-reporte { grid-area: nombre; }
@@ -233,6 +234,7 @@
   .figma-selector-tipo .btn { padding: 8px 4px; font-size: 13px; }
   .figma-formulario-reporte { display: flex; flex-direction: column; gap: 14px; margin-top: 15px; }
   .figma-error-reporte { order: -3; }
+  .figma-traslado-reporte { order: -2; }
   .figma-adjuntos-reporte { display: contents; }
   .figma-adjuntos-reporte > :first-child { order: -1; }
   .figma-carga-reporte { min-height: 120px; }
