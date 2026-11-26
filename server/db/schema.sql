@@ -210,6 +210,9 @@ CREATE TABLE IF NOT EXISTS reporte (
   fecha_evento   DATE NOT NULL
 );
 ALTER TABLE reporte ADD COLUMN IF NOT EXISTS hora_evento TIME(0);
+ALTER TABLE reporte ADD COLUMN IF NOT EXISTS id_desaparicion_origen INT REFERENCES reporte(id_publicacion) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_reporte_desaparicion_origen
+  ON reporte(id_desaparicion_origen, id_publicacion DESC) WHERE id_desaparicion_origen IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS custodia_refugio (
   id_publicacion INT PRIMARY KEY REFERENCES reporte(id_publicacion) ON DELETE CASCADE,

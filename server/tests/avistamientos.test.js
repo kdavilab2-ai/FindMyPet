@@ -156,3 +156,58 @@ test('permite informar un traslado después de publicar y descarta avistamientos
   expect((await notificaciones(propietario)).body.datos).toContainEqual(expect.objectContaining({ tipo: 'Avistamiento', idPublicacion: visto.id }));
   expect((await detalle(segundoPerdido.id)).body.idEstado).toBe(1);
 });
+
+test('publica observaciones y fotos en la ficha de origen con permisos de contacto separados', async () => {
+  const origen = (await publicar(propietario.token, { nombreAnimal: 'Publicación del hallazgo' })).body;
+  const otraFicha = (await publicar(propietario.token, { nombreAnimal: 'Otra mascota perdida' })).body;
+  const general = await publicarAvistamiento({ descripcion: 'Avistamiento general de la comunidad' });
+  const datos = {
+    idDesaparicionOrigen: origen.id, descripcion: 'Animal visto junto al parque, caminando al norte', horaEvento: '10:30',
+  };
+  const primero = await publicarAvistamiento(datos);
+  expect(primero.status).toBe(201);
+  expect(primero.body.idDesaparicionOrigen).toBe(origen.id);
+  const segundo = await publicarAvistamiento({
+    ...datos, descripcion: 'Animal visto cerca de la cancha',
+    idRefugioCustodia: refugio.usuario.refugio.id, notasCustodia: 'Información de entrega reservada',
+  });
+  expect(segundo.status).toBe(201);
+  const ruta = `/api/publicaciones/${origen.id}/avistamientos`;
+  const visitas = await request(app).get(ruta);
+  expect(visitas.status).toBe(200);
+  expect(visitas.headers['cache-control']).toBe('no-store');
+  expect(visitas.body.datos.map((v) => v.id)).toEqual([segundo.body.id, primero.body.id]);
+  expect(visitas.body.datos[1]).toMatchObject({
+    descripcion: datos.descripcion, autor: null, horaEvento: '10:30', sector: 'Las Piñas', canton: 'Milagro',
+    fotos: [{ id: expect.any(Number), url: primero.body.foto }],
+  });
+  for (const avistamiento of visitas.body.datos) {
+    expect(avistamiento).not.toHaveProperty('contactos');
+    expect(avistamiento).not.toHaveProperty('notasCustodia');
+    expect(avistamiento).not.toHaveProperty('direccion');
+  }
+  const pagina = await request(app).get(ruta).query({ antesDe: segundo.body.id }).set(conToken(testigo.token));
+  expect(pagina.body.datos).toEqual([expect.objectContaining({ id: primero.body.id, autor: 'Usuario P.' })]);
+  expect((await request(app).get(`/api/publicaciones/${otraFicha.id}/avistamientos`)).body.datos).toEqual([]);
+  expect((await request(app).get(`/api/publicaciones/${general.body.id}/avistamientos`)).status).toBe(404);
+  expect((await publicarAvistamiento({ ...datos, idEspecie: 2, idRaza: '' })).status).toBe(400);
+  expect((await detalle(origen.id)).body.idEstado).toBe(1);
+});
+
+test('rechaza vínculos nuevos hacia un avistamiento, una ficha inexistente o una desaparición cerrada', async () => {
+  expect((await publicarAvistamiento({ idDesaparicionOrigen: hallada.id })).status).toBe(404);
+  expect((await publicarAvistamiento({ idDesaparicionOrigen: 999999 })).status).toBe(404);
+  expect((await publicarAvistamiento({ idDesaparicionOrigen: perdida.id })).status).toBe(409);
+  expect((await publicar(testigo.token, { idDesaparicionOrigen: perdida.id })).status).toBe(400);
+});
+
+test('mantiene el avistamiento independiente si se elimina la ficha de origen', async () => {
+  const origen = (await publicar(propietario.token)).body;
+  const visto = await publicarAvistamiento({ idDesaparicionOrigen: origen.id });
+  expect(visto.status).toBe(201);
+  expect((await request(app).delete(`/api/publicaciones/${origen.id}`).set(conToken(propietario.token))).status).toBe(204);
+  const consulta = await detalle(visto.body.id);
+  expect(consulta.status).toBe(200);
+  expect(consulta.body.idDesaparicionOrigen).toBeNull();
+  expect(consulta.body.foto).toBe(visto.body.foto);
+});

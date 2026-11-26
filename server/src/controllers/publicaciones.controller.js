@@ -20,7 +20,8 @@ const POR_PAGINA = 12;
 const SELECT_PUBLICACION = `
   SELECT p.id_publicacion AS id, p.id_usuario, p.id_tipo, tp.nombre AS tipo, p.id_estado, ep.nombre AS estado,
          p.id_especie, e.nombre AS especie, p.id_raza, rz.nombre AS raza, p.id_tamano, t.nombre AS tamano,
-         p.nombre_animal, p.descripcion, p.fecha_creacion, r.fecha_evento, to_char(r.hora_evento, 'HH24:MI') AS hora_evento, a.estado_salud,
+         p.nombre_animal, p.descripcion, p.fecha_creacion, r.fecha_evento, to_char(r.hora_evento, 'HH24:MI') AS hora_evento,
+         r.id_desaparicion_origen, a.estado_salud,
          rf.id_refugio, rf.nombre AS refugio,
          CASE WHEN cr.id_refugio IS NOT NULL THEN json_build_object('idRefugio', cr.id_refugio, 'nombre', rc.nombre,
            'informadaEn', cr.informada_en, 'confirmadaEn', cr.confirmada_en) END AS custodia,
@@ -234,11 +235,38 @@ async function misPublicaciones(req, res) {
   res.json(datos);
 }
 
+// RF-07 y RNF-05: muestra avistamientos vinculados desde la ficha con sus fotos y observaciones públicas.
+async function listarAvistamientos(req, res) {
+  const id = entero(req.params.id);
+  const antesDe = enteroOpcional(req.query.antesDe, 'Avistamiento anterior');
+  if (!(await una('SELECT 1 FROM publicacion WHERE id_publicacion = $1 AND id_tipo = $2', [id, TIPO.DESAPARECIDA]))) {
+    throw new ErrorHttp(404, 'Reporte de desaparición no encontrado');
+  }
+  const datos = await consulta(
+    `SELECT p.id_publicacion AS id, p.descripcion, r.fecha_evento, to_char(r.hora_evento, 'HH24:MI') AS hora_evento,
+            s.nombre AS sector, c.nombre AS canton,
+            CASE WHEN $5::boolean THEN u.nombres || ' ' || LEFT(u.apellidos, 1) || '.' END AS autor,
+            COALESCE((SELECT json_agg(json_build_object('id', m.id_multimedia, 'url', m.url) ORDER BY m.id_multimedia)
+                      FROM multimedia m WHERE m.id_publicacion = p.id_publicacion AND m.id_tipo_multimedia = $4), '[]') AS fotos
+     FROM reporte r JOIN publicacion p USING (id_publicacion) JOIN usuario u ON u.id_usuario = p.id_usuario
+     JOIN ubicacion ub ON ub.id_ubicacion = r.id_ubicacion JOIN sector s USING (id_sector) JOIN canton c USING (id_canton)
+     WHERE r.id_desaparicion_origen = $1 AND p.id_tipo = $2 AND ($3::int IS NULL OR r.id_publicacion < $3)
+     ORDER BY r.id_publicacion DESC LIMIT $6`,
+    [id, TIPO.ENCONTRADA, antesDe, TIPO_MULTIMEDIA.IMAGEN, Boolean(req.usuario), POR_PAGINA + 1],
+  );
+  const siguiente = datos.length > POR_PAGINA ? datos[POR_PAGINA - 1].id : null;
+  res.set('Cache-Control', 'no-store').json({ datos: datos.slice(0, POR_PAGINA), siguiente });
+}
+
 // RF-04, RF-07, RF-12: crear reporte de desaparecida, encontrado o publicación de adopción
 async function crear(req, res) {
   const b = req.body;
   const idTipo = entero(b.tipo, 'Tipo de publicación');
   if (!Object.values(TIPO).includes(idTipo)) throw new ErrorHttp(400, 'Tipo de publicación inválido');
+  const idDesaparicionOrigen = enteroOpcional(b.idDesaparicionOrigen, 'Publicación de origen');
+  if (idDesaparicionOrigen && idTipo !== TIPO.ENCONTRADA) {
+    throw new ErrorHttp(400, 'Solo los avistamientos se pueden vincular a una desaparición');
+  }
   if (idTipo === TIPO.ADOPCION && !req.usuario.esAdmin) {
     if (req.usuario.rol !== ROL.REFUGIO) throw new ErrorHttp(403, 'Solo los refugios pueden publicar animales en adopción');
     if (!req.usuario.refugioAutorizado) throw new ErrorHttp(403, 'Su refugio aún no ha sido autorizado por el administrador');
@@ -267,6 +295,13 @@ async function crear(req, res) {
   }
 
   const id = await transaccion(async (tx) => {
+    if (idDesaparicionOrigen) {
+      const [origen] = await tx.consulta(`SELECT p.id_estado, p.id_especie FROM publicacion p JOIN reporte r USING (id_publicacion)
+        WHERE p.id_publicacion = $1 AND p.id_tipo = $2 FOR SHARE OF p`, [idDesaparicionOrigen, TIPO.DESAPARECIDA]);
+      if (!origen) throw new ErrorHttp(404, 'Reporte de desaparición no encontrado');
+      if (origen.idEstado !== ESTADO.DESAPARECIDA_PENDIENTE) throw new ErrorHttp(409, 'El reporte de desaparición ya está cerrado');
+      if (origen.idEspecie !== animal.idEspecie) throw new ErrorHttp(400, 'El avistamiento debe corresponder a la especie de la mascota perdida');
+    }
     const [pub] = await tx.consulta(
       `INSERT INTO publicacion (id_usuario, id_tipo, id_estado, id_especie, id_raza, id_tamano, nombre_animal, descripcion)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id_publicacion`,
@@ -277,7 +312,8 @@ async function crear(req, res) {
       await tx.consulta('INSERT INTO adopcion (id_publicacion, estado_salud) VALUES ($1, $2)', [idPub, estadoSalud.slice(0, 200)]);
     } else {
       const idUbicacion = await guardarUbicacion(tx.consulta, ubicacion);
-      await tx.consulta('INSERT INTO reporte (id_publicacion, id_ubicacion, fecha_evento, hora_evento) VALUES ($1, $2, $3, $4)', [idPub, idUbicacion, fechaEvento, hora]);
+      await tx.consulta(`INSERT INTO reporte (id_publicacion, id_ubicacion, fecha_evento, hora_evento, id_desaparicion_origen)
+        VALUES ($1, $2, $3, $4, $5)`, [idPub, idUbicacion, fechaEvento, hora, idDesaparicionOrigen]);
       if (idTipo === TIPO.ENCONTRADA) await guardarCustodia(tx.consulta, idPub, req.usuario.id, b);
     }
     await guardarColoresYContactos(tx, idPub, animal.colores, contactos);
@@ -410,5 +446,5 @@ async function interesAdopcion(req, res) {
 }
 
 module.exports = {
-  listar, resumen, obtener, misPublicaciones, crear, actualizar, cambiarEstado, eliminar, interesAdopcion, SELECT_PUBLICACION,
+  listar, resumen, obtener, misPublicaciones, listarAvistamientos, crear, actualizar, cambiarEstado, eliminar, interesAdopcion, SELECT_PUBLICACION,
 };

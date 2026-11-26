@@ -74,6 +74,7 @@ router.get('/publicaciones', a(publicaciones.listar));
 router.get('/publicaciones/resumen', a(publicaciones.resumen));
 router.get('/publicaciones/mias', verificarToken, a(publicaciones.misPublicaciones));
 router.get('/publicaciones/:id', sesionOpcional, a(publicaciones.obtener));
+router.get('/publicaciones/:id/avistamientos', sesionOpcional, a(publicaciones.listarAvistamientos));
 router.post('/publicaciones', verificarToken, recibirArchivos, a(publicaciones.crear));
 router.put('/publicaciones/:id', verificarToken, recibirArchivos, a(publicaciones.actualizar));
 router.patch('/publicaciones/:id/estado', verificarToken, a(publicaciones.cambiarEstado));

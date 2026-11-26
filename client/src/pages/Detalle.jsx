@@ -7,6 +7,7 @@ import Mapa from '../components/Mapa';
 import CoordinacionAvistamiento from '../components/CoordinacionAvistamiento';
 import ConfirmarRecuperacion from '../components/ConfirmarRecuperacion';
 import EnlacesContacto from '../components/EnlacesContacto';
+import AvistamientosPublicacion from '../components/AvistamientosPublicacion';
 import {
   Alerta, Cargando, ESTILO_TIPO, IconoEspecie, InsigniaEstado, InsigniaTipo, Modal, formatoFecha, formatoFechaHora,
 } from '../components/Comunes';
@@ -25,7 +26,7 @@ function Dato({ titulo, valor }) {
 
 export default function Detalle() {
   const { id } = useParams();
-  const { state } = useLocation();
+  const { state, hash } = useLocation();
   const navegar = useNavigate();
   const { usuario, esAdmin } = useAuth();
   const { catalogos } = useCatalogos();
@@ -40,6 +41,9 @@ export default function Detalle() {
 
   const cargar = useCallback(() => api.get(`/publicaciones/${id}`).then(setP).catch((e) => setError(e.message)), [id]);
   useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    if (hash === '#avistamientos' && p?.id === Number(id)) document.getElementById('avistamientos')?.scrollIntoView();
+  }, [hash, id, p?.id]);
 
   if (error && !p) return <div className="mx-auto max-w-5xl px-4 py-8"><Alerta>{error}</Alerta></div>;
   if (!p) return <Cargando />;
@@ -126,6 +130,7 @@ export default function Detalle() {
 
           <p className="whitespace-pre-line text-sm leading-relaxed">{p.descripcion}</p>
           <p className="text-xs text-suave">Publicado el {formatoFechaHora(p.fechaCreacion)}{p.autor && ` por ${p.autor}`}</p>
+          {p.idDesaparicionOrigen && <Link to={`/publicaciones/${p.idDesaparicionOrigen}#avistamientos`} className="inline-block text-sm text-lavanda underline">Ver publicación de la mascota perdida</Link>}
 
           {p.custodia && <section className="panel space-y-1 border-hallada/40 p-5">
             <h2 className="text-base text-lavanda">{p.custodia.confirmadaEn ? 'Recepción confirmada por el refugio' : 'Traslado a refugio informado'}</h2>
@@ -171,7 +176,7 @@ export default function Detalle() {
               )}
               {p.idTipo === 1 && p.idEstado === 1 && (
                 <>
-                  <p className="text-xs text-suave">¿Viste un animal parecido? <Link to="/reportar?tipo=2" className="text-lavanda underline">Registra un avistamiento</Link>. Si encontramos similitudes, avisaremos al propietario.</p>
+                  <p className="text-xs text-suave">¿Viste un animal parecido? <Link to={`/reportar?tipo=2&referencia=${id}`} className="text-lavanda underline">Registra un avistamiento en esta publicación</Link>.</p>
                   <div className="space-y-2 border-t border-borde pt-3">
                     <p className="text-sm text-suave">Si ya entregaste al animal, informa qué refugio lo recibió para que pueda coordinar con los posibles propietarios.</p>
                     <Link to={`/reportar?tipo=2&traslado=1&referencia=${id}`} className="btn btn-secundario w-full sm:w-auto">Informar traslado a un refugio</Link>
@@ -182,6 +187,8 @@ export default function Detalle() {
           )}
         </div>
       </div>
+
+      {p.idTipo === 1 && <AvistamientosPublicacion key={p.id} publicacion={p} avistamientoPublicado={state?.avistamientoPublicado} />}
 
       <ConfirmarRecuperacion nombre={nombre} abierto={confirmarRecuperar} alCerrar={() => setConfirmarRecuperar(false)}
         alConfirmar={() => { setConfirmarRecuperar(false); cambiarEstado(2); }} />
