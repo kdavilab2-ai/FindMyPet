@@ -11,7 +11,8 @@ const {
 } = require('../lib/constantes');
 const coincidencias = require('../services/coincidencias.service');
 const alertas = require('../services/alertas.service');
-const { leerHora, guardarCustodia } = require('../services/avistamientos.service');
+const { leerHora, guardarCustodia, confirmarRecuperacion } = require('../services/avistamientos.service');
+const { contactosPublicacion } = require('../lib/contactos');
 
 const POR_PAGINA = 12;
 
@@ -212,14 +213,7 @@ async function obtener(req, res) {
     p.notasCustodia = (await una('SELECT notas FROM custodia_refugio WHERE id_publicacion = $1', [id]))?.notas || null;
   }
   if (req.usuario) {
-    p.contactos = await consulta(
-      `SELECT tc.nombre AS tipo, cp.valor FROM contacto_publicacion cp
-       JOIN tipo_contacto tc ON tc.id_tipo_contacto = cp.id_tipo_contacto
-       JOIN publicacion p ON p.id_publicacion = cp.id_publicacion
-       WHERE cp.id_publicacion = $1 AND ($2::boolean OR p.id_tipo_contacto_visible IS NULL OR p.id_tipo_contacto_visible = cp.id_tipo_contacto)
-       ORDER BY cp.id_tipo_contacto`,
-      [id, Boolean(esAutor)],
-    );
+    p.contactos = await contactosPublicacion(consulta, id, Boolean(esAutor));
     const autor = await una('SELECT nombres, apellidos FROM usuario WHERE id_usuario = $1', [p.idUsuario]);
     p.autor = `${autor.nombres} ${autor.apellidos.charAt(0)}.`;
   } else {
@@ -254,7 +248,7 @@ async function crear(req, res) {
 
   const animal = await leerDatosAnimal(b, idTipo);
   const hora = idTipo === TIPO.ENCONTRADA ? leerHora(b.horaEvento) : null;
-  if (idTipo !== TIPO.ENCONTRADA && b.idRefugioCustodia) throw new ErrorHttp(400, 'Solo los avistamientos admiten traslados a refugios');
+  if (idTipo !== TIPO.ENCONTRADA && (b.idRefugioCustodia || b.situacionTraslado !== undefined)) throw new ErrorHttp(400, 'Solo los avistamientos admiten traslados a refugios');
   const contactos = leerContactos(b);
   let ubicacion;
   let fechaEvento;
@@ -303,8 +297,9 @@ async function actualizar(req, res) {
   const actual = await buscarPropia(req);
   const b = req.body;
   const hora = actual.idTipo === TIPO.ENCONTRADA ? leerHora(b.horaEvento) : null;
-  if (actual.idTipo !== TIPO.ENCONTRADA && b.idRefugioCustodia) throw new ErrorHttp(400, 'Solo los avistamientos admiten traslados a refugios');
-  if (b.idRefugioCustodia !== undefined && req.usuario.id !== actual.idUsuario) throw new ErrorHttp(403, 'Solo el autor puede informar un traslado');
+  const informaTraslado = b.idRefugioCustodia !== undefined || b.situacionTraslado !== undefined;
+  if (actual.idTipo !== TIPO.ENCONTRADA && (b.idRefugioCustodia || b.situacionTraslado !== undefined)) throw new ErrorHttp(400, 'Solo los avistamientos admiten traslados a refugios');
+  if (informaTraslado && req.usuario.id !== actual.idUsuario) throw new ErrorHttp(403, 'Solo el autor puede informar un traslado');
   const animal = await leerDatosAnimal(b, actual.idTipo);
   const contactos = leerContactos(b);
   const quitar = listaEnteros(b.quitarArchivos, 'Archivo');
@@ -370,7 +365,11 @@ async function cambiarEstado(req, res) {
   const idEstado = entero(req.body.idEstado, 'Estado');
   if (!ESTADOS_POR_TIPO[actual.idTipo].includes(idEstado)) throw new ErrorHttp(400, 'Estado no válido para este tipo de publicación');
   if (idEstado === ESTADO.RECUPERADA && actual.idUsuario !== req.usuario.id) throw new ErrorHttp(403, 'Solo el propietario puede confirmar la recuperación');
-  await una('UPDATE publicacion SET id_estado = $1 WHERE id_publicacion = $2', [idEstado, actual.idPublicacion]);
+  if (idEstado === ESTADO.RECUPERADA) {
+    await transaccion((tx) => confirmarRecuperacion(tx.consulta, actual.idPublicacion));
+  } else {
+    await una('UPDATE publicacion SET id_estado = $1 WHERE id_publicacion = $2', [idEstado, actual.idPublicacion]);
+  }
   if (idEstado === ESTADO_INICIAL[actual.idTipo] && actual.idTipo !== TIPO.ADOPCION) {
     coincidencias.analizarEnSegundoPlano(actual.idPublicacion);
   }

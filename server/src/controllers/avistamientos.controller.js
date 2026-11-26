@@ -1,11 +1,13 @@
 const { consulta, transaccion } = require('../lib/db');
 const { ErrorHttp } = require('../middlewares/errores');
 const { entero, texto } = require('../lib/validar');
-const { TIPO, ESTADO_CUENTA, ESTADO_COINCIDENCIA } = require('../lib/constantes');
+const { TIPO, ESTADO, ESTADO_CUENTA, ESTADO_COINCIDENCIA } = require('../lib/constantes');
 const { propietarios, avisarCaso } = require('../services/avistamientos.service');
+const { contactosPublicacion } = require('../lib/contactos');
 
 async function cargarCaso(consultar, id, bloqueo = '') {
-  const [caso] = await consultar(`SELECT cr.notas, cr.confirmada_en, p.id_usuario AS autor, rf.id_usuario AS refugio,
+  const [caso] = await consultar(`SELECT cr.notas, cr.informada_en, cr.confirmada_en, p.id_usuario AS autor, rf.id_usuario AS refugio,
+    a.nombres || ' ' || LEFT(a.apellidos, 1) || '.' AS nombre_autor,
     rf.autorizado AND r.id_estado_cuenta = $3 AS refugio_activo, a.id_estado_cuenta = $3 AS autor_activo, rf.nombre
     FROM custodia_refugio cr JOIN publicacion p USING (id_publicacion) JOIN refugio rf USING (id_refugio)
     JOIN usuario r ON r.id_usuario = rf.id_usuario JOIN usuario a ON a.id_usuario = p.id_usuario
@@ -34,7 +36,7 @@ async function destinosCaso(consultar, id, usuario, caso) {
     }
   }
   destinos.delete(usuario);
-  return { destinos, puedeConfirmar: esRefugio && !caso.confirmadaEn };
+  return { destinos, esRefugio, esAutor, puedeConfirmar: esRefugio && !caso.confirmadaEn };
 }
 
 async function coordinacion(req, res) {
@@ -42,13 +44,24 @@ async function coordinacion(req, res) {
   const usuario = req.usuario.id;
   const resultado = await transaccion(async (tx) => {
     const caso = await cargarCaso(tx.consulta, id, 'FOR SHARE OF cr');
-    const { destinos, puedeConfirmar } = await destinosCaso(tx.consulta, id, usuario, caso);
+    const { destinos, esRefugio, esAutor, puedeConfirmar } = await destinosCaso(tx.consulta, id, usuario, caso);
     const mensajes = await tx.consulta(`SELECT id_mensaje AS id, contenido, fecha, id_remitente = $2 AS mio,
       CASE WHEN id_remitente = $2 THEN id_destinatario ELSE id_remitente END AS interlocutor
       FROM mensaje_avistamiento WHERE id_publicacion = $1 AND (
         (id_remitente = $2 AND id_destinatario = ANY($3::int[])) OR (id_destinatario = $2 AND id_remitente = ANY($3::int[])))
       ORDER BY id_mensaje DESC LIMIT 50`, [id, usuario, [...destinos.keys()]]);
-    return { notas: caso.notas, puedeConfirmar, destinos: [...destinos].map(([id, etiqueta]) => ({ id, etiqueta })),
+    const coincidencias = await tx.consulta(`SELECT d.id_publicacion AS id, d.nombre_animal AS mascota,
+      d.id_usuario, co.porcentaje::float, co.id_estado = $3 AS identificada, d.id_estado = $4 AS recuperada
+      FROM coincidencia co JOIN publicacion d ON d.id_publicacion = co.id_desaparecida
+      WHERE co.id_encontrada = $1 AND co.id_estado IN ($2, $3)
+        AND ($5::boolean OR d.id_usuario = $6 OR ($7::boolean AND co.id_estado = $3))
+      ORDER BY identificada DESC, co.porcentaje DESC`,
+    [id, ESTADO_COINCIDENCIA.SUGERIDA, ESTADO_COINCIDENCIA.CONFIRMADA, ESTADO.RECUPERADA, esRefugio, usuario, esAutor]);
+    const autor = esRefugio ? { nombre: caso.nombreAutor, contactos: await contactosPublicacion(tx.consulta, id) } : null;
+    return { notas: caso.notas, puedeConfirmar, esRefugio, autor,
+      refugio: { nombre: caso.nombre, informadaEn: caso.informadaEn, confirmadaEn: caso.confirmadaEn },
+      coincidencias: coincidencias.map(({ idUsuario, ...c }) => ({ ...c, destino: destinos.has(idUsuario) ? idUsuario : null })),
+      destinos: [...destinos].map(([id, etiqueta]) => ({ id, etiqueta })),
       mensajes: mensajes.reverse().map(({ interlocutor, ...m }) => ({ ...m, interlocutor: destinos.get(interlocutor) })) };
   });
   res.set('Cache-Control', 'no-store').json(resultado);
@@ -87,9 +100,13 @@ async function confirmar(req, res) {
 
 async function delRefugio(req, res) {
   if (!req.usuario.refugioAutorizado) throw new ErrorHttp(403, 'El refugio debe estar autorizado');
-  const datos = await consulta(`SELECT p.id_publicacion AS id, p.nombre_animal, e.nombre AS especie, cr.informada_en, cr.confirmada_en
+  const datos = await consulta(`SELECT p.id_publicacion AS id, p.nombre_animal, e.nombre AS especie, cr.informada_en, cr.confirmada_en,
+      (SELECT COUNT(*)::int FROM coincidencia co WHERE co.id_encontrada = p.id_publicacion AND co.id_estado IN ($2, $3)) AS coincidencias,
+      EXISTS (SELECT 1 FROM coincidencia co JOIN publicacion d ON d.id_publicacion = co.id_desaparecida
+        WHERE co.id_encontrada = p.id_publicacion AND co.id_estado = $3 AND d.id_estado = $4) AS recuperacion_confirmada
     FROM custodia_refugio cr JOIN publicacion p USING (id_publicacion) JOIN especie e USING (id_especie)
-    WHERE cr.id_refugio = $1 ORDER BY cr.informada_en DESC`, [req.usuario.idRefugio]);
+    WHERE cr.id_refugio = $1 ORDER BY cr.informada_en DESC`,
+  [req.usuario.idRefugio, ESTADO_COINCIDENCIA.SUGERIDA, ESTADO_COINCIDENCIA.CONFIRMADA, ESTADO.RECUPERADA]);
   res.set('Cache-Control', 'no-store').json(datos);
 }
 

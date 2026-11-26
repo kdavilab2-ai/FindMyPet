@@ -3,6 +3,7 @@ const { ErrorHttp } = require('../middlewares/errores');
 const { entero } = require('../lib/validar');
 const { ESTADO_COINCIDENCIA, TIPO_NOTIFICACION, TIPO } = require('../lib/constantes');
 const servicio = require('../services/coincidencias.service');
+const { avisarRefugio } = require('../services/avistamientos.service');
 
 const RESUMEN = (alias) => `json_build_object(
   'id', ${alias}.id_publicacion, 'nombre', ${alias}.nombre_animal, 'descripcion', ${alias}.descripcion,
@@ -63,6 +64,7 @@ async function responder(req, res) {
         [co.hallador, co.idEncontrada, TIPO_NOTIFICACION.COINCIDENCIA,
           `El propietario de ${co.nombreAnimal || 'una mascota'} cree que el animal que encontraste es suyo. La recuperación sigue pendiente.`],
       );
+      await avisarRefugio(tx.consulta, co.idEncontrada, `El propietario de ${co.nombreAnimal || 'una mascota'} indicó que podría ser su animal. Puedes coordinar con él desde el avistamiento.`);
     }
   });
   res.json({ id, idEstado });

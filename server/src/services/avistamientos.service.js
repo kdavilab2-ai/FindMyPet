@@ -14,6 +14,23 @@ async function avisarCaso(consultar, id, usuarios, mensaje) {
   [id, TIPO_NOTIFICACION.AVISTAMIENTO, mensaje.slice(0, 255), usuarios, ESTADO_CUENTA.ACTIVA]);
 }
 
+async function avisarRefugio(consultar, id, mensaje) {
+  const [refugio] = await consultar(`SELECT r.id_usuario FROM custodia_refugio c JOIN refugio r USING (id_refugio)
+    WHERE c.id_publicacion = $1 AND r.autorizado`, [id]);
+  if (refugio) await avisarCaso(consultar, id, [refugio.idUsuario], mensaje);
+}
+
+async function confirmarRecuperacion(consultar, id) {
+  const [recuperada] = await consultar(`UPDATE publicacion SET id_estado = $2 WHERE id_publicacion = $1
+    AND id_estado <> $2 RETURNING nombre_animal`, [id, ESTADO.RECUPERADA]);
+  if (!recuperada) return;
+  const casos = await consultar(`SELECT c.id_encontrada FROM coincidencia c JOIN custodia_refugio cr ON cr.id_publicacion = c.id_encontrada
+    WHERE c.id_desaparecida = $1 AND c.id_estado = $2`, [id, ESTADO_COINCIDENCIA.CONFIRMADA]);
+  for (const caso of casos) {
+    await avisarRefugio(consultar, caso.idEncontrada, `El propietario confirmó que recuperó a ${recuperada.nombreAnimal || 'su mascota'}. Revisa el seguimiento del traslado.`);
+  }
+}
+
 function propietarios(consultar, id) {
   return consultar(`SELECT DISTINCT d.id_usuario, d.nombre_animal FROM coincidencia c JOIN publicacion d ON d.id_publicacion = c.id_desaparecida
     WHERE c.id_encontrada = $1 AND c.id_estado IN ($2, $3) AND d.id_estado = $4`,
@@ -21,8 +38,14 @@ function propietarios(consultar, id) {
 }
 
 async function guardarCustodia(consultar, id, idAutor, datos) {
-  if (datos.idRefugioCustodia === undefined) return;
+  const situacion = datos.situacionTraslado;
+  if (situacion === undefined && datos.idRefugioCustodia === undefined) return;
+  if (situacion !== undefined && !['sin_traslado', 'realizado'].includes(situacion)) {
+    throw new ErrorHttp(400, 'Indica qué ocurrió con el animal');
+  }
   const idRefugio = enteroOpcional(datos.idRefugioCustodia, 'Refugio');
+  if (situacion === 'realizado' && !idRefugio) throw new ErrorHttp(400, 'Selecciona el refugio al que ya fue trasladado el animal');
+  if (situacion === 'sin_traslado' && idRefugio) throw new ErrorHttp(400, 'Solo selecciona un refugio si el traslado ya ocurrió');
   const notas = texto(datos.notasCustodia);
   if (notas.length > 500) throw new ErrorHttp(400, 'Las notas de entrega admiten hasta 500 caracteres');
   if (!idRefugio && notas) throw new ErrorHttp(400, 'Selecciona un refugio para registrar las notas de entrega');
@@ -47,4 +70,4 @@ async function guardarCustodia(consultar, id, idAutor, datos) {
     `Se informó el traslado de un animal avistado a ${refugio.nombre}. Consulta el reporte para coordinar.`);
 }
 
-module.exports = { leerHora, guardarCustodia, propietarios, avisarCaso };
+module.exports = { leerHora, guardarCustodia, propietarios, avisarCaso, avisarRefugio, confirmarRecuperacion };

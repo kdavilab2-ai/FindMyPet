@@ -89,7 +89,9 @@ La exportación JSON incluye datos de la cuenta y referencias a los archivos pro
 
 ## Avistamientos y traslados a refugios
 
-Actualiza la base con `npm run db:migrate`. En **Avistamientos → Registrar avistamiento** se adjuntan fotos, fecha, hora aproximada opcional, ubicación y señas del animal. Si ya fue trasladado, el autor puede asociar un refugio autorizado en el formulario inicial o al editarlo. La recepción se confirma desde **Mi refugio**. Las cuentas vinculadas pueden coordinar por mensajes privados en el detalle del avistamiento.
+En **Avistamientos → Registrar avistamiento**, indica primero si el animal ya fue trasladado a un refugio. Si hubo traslado, elige el refugio autorizado que lo recibió y añade las notas de entrega que necesites. También puedes informar de un traslado al editar el avistamiento. Completa el reporte con fotos, fecha, hora aproximada opcional, ubicación y señas del animal.
+
+Desde **Mi refugio → Gestionar traslado**, el refugio confirma la recepción, consulta los contactos autorizados de quien reportó el avistamiento y puede escribir por privado a los posibles propietarios. Recibe avisos de nuevas coincidencias, de la posible identificación y de la confirmación de recuperación de un reporte vinculado.
 
 El análisis sugiere similitudes y avisa a los propietarios. Sin Gemini usa ubicación, fechas y atributos locales, incluidas señas comparables en la descripción. Con `GEMINI_API_KEY` también puede comparar las fotos. Indicar una posible identificación deja la desaparición activa. El propietario confirma la recuperación en el estado de su reporte.
 

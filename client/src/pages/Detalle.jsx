@@ -6,6 +6,7 @@ import { useCatalogos } from '../context/CatalogosContext';
 import Mapa from '../components/Mapa';
 import CoordinacionAvistamiento from '../components/CoordinacionAvistamiento';
 import ConfirmarRecuperacion from '../components/ConfirmarRecuperacion';
+import EnlacesContacto from '../components/EnlacesContacto';
 import {
   Alerta, Cargando, ESTILO_TIPO, IconoEspecie, InsigniaEstado, InsigniaTipo, Modal, formatoFecha, formatoFechaHora,
 } from '../components/Comunes';
@@ -20,14 +21,6 @@ function Dato({ titulo, valor }) {
       <dd className="mt-0.5 text-sm font-medium">{valor}</dd>
     </div>
   );
-}
-
-const whatsappInternacional = (valor) => `+593${valor.replace(/^0/, '')}`;
-
-function enlaceContacto(c, nombre) {
-  if (c.tipo === 'WhatsApp') return `https://wa.me/${whatsappInternacional(c.valor).slice(1)}?text=${encodeURIComponent(`Hola, te escribo por ${nombre} que vi en FindMyPet`)}`;
-  if (c.tipo === 'Teléfono') return `tel:${c.valor}`;
-  return `mailto:${c.valor}`;
 }
 
 export default function Detalle() {
@@ -139,7 +132,7 @@ export default function Detalle() {
             <Link to={`/refugios/${p.custodia.idRefugio}`} className="text-sm font-semibold text-lavanda underline">{p.custodia.nombre}</Link>
             <p className="text-sm text-suave">{p.custodia.confirmadaEn ? 'El refugio confirmó que recibió al animal.' : 'El refugio aún debe confirmar que recibió al animal.'}</p>
           </section>}
-          {p.custodia && usuario && <CoordinacionAvistamiento key={id} id={id} alConfirmar={cargar} />}
+          {p.custodia && usuario && <CoordinacionAvistamiento key={id} id={id} nombreAnimal={nombre} alConfirmar={cargar} />}
 
           {(p.esAutor || esAdmin) && (
             <div className="panel space-y-3 p-5">
@@ -173,13 +166,7 @@ export default function Detalle() {
                   ? <button className="btn btn-exito w-full" onClick={meInteresa}>💚 Me interesa adoptar a {nombre}</button>
                   : <p className="text-sm text-suave">{nombre} ya fue adoptado. ¡Gracias por tu interés!</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  {contactos?.map((c) => (
-                    <a key={c.tipo} href={enlaceContacto(c, nombre)} target="_blank" rel="noreferrer" className={`btn ${c.tipo === 'WhatsApp' ? 'btn-exito' : 'btn-secundario'}`}>
-                      {{ WhatsApp: '💬', Teléfono: '📞', Correo: '✉️' }[c.tipo]} {c.tipo === 'WhatsApp' ? whatsappInternacional(c.valor) : c.valor}
-                    </a>
-                  ))}
-                </div>
+                <EnlacesContacto contactos={contactos} nombre={nombre} />
               )}
               {p.idTipo === 1 && p.idEstado === 1 && <p className="text-xs text-suave">¿Viste un animal parecido? <Link to="/reportar?tipo=2" className="text-lavanda underline">Registra un avistamiento</Link>. Si encontramos similitudes, avisaremos al propietario.</p>}
             </div>

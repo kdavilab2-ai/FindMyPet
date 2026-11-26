@@ -54,10 +54,13 @@ export default function MiRefugio() {
             <Alerta>{errorAvistamientos}</Alerta>
             {!avistamientos && !errorAvistamientos && <Cargando />}
             {avistamientos?.length === 0 && <p className="text-sm text-suave">Todavía no se han informado traslados a tu refugio.</p>}
-            {avistamientos?.map((a) => <p key={a.id} className="text-sm">
-              <Link to={`/publicaciones/${a.id}`} className="text-lavanda underline">{a.nombreAnimal || a.especie}</Link>
-              {' · '}{a.confirmadaEn ? 'Recepción confirmada' : 'Recepción pendiente'}
-            </p>)}
+            {avistamientos?.map((a) => <div key={a.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-borde p-3 text-sm">
+              <div><p className="font-semibold">{a.nombreAnimal || a.especie}</p>
+                <p className="text-suave">{a.confirmadaEn ? 'Recepción confirmada' : 'Recepción pendiente'} · {a.coincidencias} {a.coincidencias === 1 ? 'posible coincidencia' : 'posibles coincidencias'}</p>
+                {a.recuperacionConfirmada && <p className="text-adopcion">Recuperación confirmada por el propietario</p>}
+              </div>
+              <Link to={`/publicaciones/${a.id}`} className="btn btn-secundario">Gestionar traslado</Link>
+            </div>)}
           </section>
           <Alerta tipo="exito">{estado.ok}</Alerta>
           <Alerta>{estado.error}</Alerta>

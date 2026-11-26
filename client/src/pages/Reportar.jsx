@@ -50,6 +50,7 @@ export default function Reportar() {
   const [refugios, setRefugios] = useState(null);
   const [errorRefugios, setErrorRefugios] = useState('');
   const [custodia, setCustodia] = useState(null);
+  const [situacion, setSituacion] = useState('');
 
   useEffect(() => {
     if (tipo !== 2) return;
@@ -74,6 +75,7 @@ export default function Reportar() {
       });
       setHoraEvento(p.horaEvento || '');
       setCustodia(p.custodia);
+      setSituacion(p.custodia ? 'realizado' : 'sin_traslado');
       if (p.idTipo !== 3) setUbicacion(ubicacionDesdeApi(p.ubicacion));
       setExistentes(p.multimedia);
       setCargando(false);
@@ -107,6 +109,8 @@ export default function Reportar() {
   const enviar = async (e) => {
     e.preventDefault();
     setError('');
+    if (tipo === 2 && !situacion) return setError('Indica qué ocurrió con el animal');
+    if (tipo === 2 && situacion === 'realizado' && !datos.idRefugioCustodia) return setError('Selecciona el refugio al que ya fue trasladado el animal');
     if (!hayFoto) {
       setError('Agregue al menos una foto. Los videos son opcionales.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -128,8 +132,9 @@ export default function Reportar() {
     f.append('colores', colores.join(','));
     if (tipo === 2) {
       f.append('horaEvento', e.currentTarget.elements.horaEvento.value);
-      f.append('idRefugioCustodia', idRefugioCustodia);
-      f.append('notasCustodia', idRefugioCustodia ? notasCustodia : '');
+      f.append('situacionTraslado', situacion);
+      f.append('idRefugioCustodia', situacion === 'realizado' ? idRefugioCustodia : '');
+      f.append('notasCustodia', situacion === 'realizado' ? notasCustodia : '');
     }
     if (tipo !== 3) for (const [k, v] of Object.entries(ubicacion)) if (v !== null && v !== undefined) f.append(k, v);
     if (quitar.length) f.append('quitarArchivos', quitar.join(','));
@@ -148,6 +153,8 @@ export default function Reportar() {
 
   if (!catalogos || cargando) return <Cargando />;
   const pestana = PESTANAS.find((p) => p.tipo === tipo) || PESTANAS[0];
+  const refugioSeleccionado = refugios?.find((r) => String(r.id) === datos.idRefugioCustodia)
+    || (String(custodia?.idRefugio) === datos.idRefugioCustodia ? { id: custodia.idRefugio, nombre: custodia.nombre } : null);
 
   return (
     <div className="figma-pagina figma-reportar">
@@ -173,6 +180,42 @@ export default function Reportar() {
 
       <form onSubmit={enviar} className="figma-formulario-reporte">
         {error && <div className="figma-error-reporte"><Alerta>{error}</Alerta></div>}
+        {tipo === 2 && <fieldset className="panel figma-situacion-avistamiento space-y-3 p-4 sm:p-5">
+          <legend className="px-2 font-bold text-lavanda">¿Qué ocurrió con el animal?</legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              ['sin_traslado', 'No fue trasladado a un refugio', 'Permanece conmigo o solo lo vi.'],
+              ['realizado', 'Ya fue trasladado a un refugio', 'El refugio podrá coordinar con quien reportó el avistamiento y con los posibles propietarios.'],
+            ].map(([valor, titulo, ayuda]) => (
+              <label key={valor} className={`flex items-start gap-3 rounded-xl border p-3 ${situacion === valor ? 'border-violeta bg-violeta/15' : 'border-borde bg-fondo/50'}`}>
+                <input type="radio" name="situacion-avistamiento" aria-label={titulo} className="mt-1 accent-violeta" value={valor}
+                  required checked={situacion === valor} disabled={(valor === 'sin_traslado' && Boolean(custodia?.confirmadaEn)) || (valor === 'realizado' && refugios?.length === 0 && !custodia)}
+                  onChange={() => setSituacion(valor)} />
+                <span><strong className="block text-sm">{titulo}</strong><span className="block text-xs text-suave">{ayuda}</span></span>
+              </label>
+            ))}
+          </div>
+          <Alerta>{errorRefugios}</Alerta>
+          {refugios?.length === 0 && !custodia && <p className="text-sm text-suave">No hay refugios disponibles. Puedes registrar el avistamiento sin traslado.</p>}
+          {situacion === 'realizado' && <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="etiqueta" htmlFor="custodia">Refugio que recibió al animal</label>
+              <select id="custodia" className="input" required disabled={Boolean(custodia?.confirmadaEn) || !refugios} {...campo('idRefugioCustodia')}>
+                <option value="">Selecciona un refugio</option>
+                {custodia && !refugios?.some((r) => r.id === custodia.idRefugio) && <option value={custodia.idRefugio}>{custodia.nombre}</option>}
+                {refugios?.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+              </select>
+              {refugioSeleccionado && <p className="mt-2 text-sm font-semibold text-lavanda">Refugio seleccionado: {refugioSeleccionado.nombre}</p>}
+              {custodia?.confirmadaEn && <p className="mt-1 text-xs text-suave">El refugio ya confirmó la recepción.</p>}
+              <Link to="/refugios" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm text-lavanda underline">Consultar refugios disponibles (nueva pestaña)</Link>
+            </div>
+            {datos.idRefugioCustodia && <div>
+              <label className="etiqueta" htmlFor="notas-custodia">Notas de entrega (opcional)</label>
+              <textarea id="notas-custodia" className="input" maxLength={500} rows={2} {...campo('notasCustodia')} />
+              <p className="text-xs text-suave">Solo las cuentas vinculadas al traslado pueden ver estas notas.</p>
+            </div>}
+          </div>}
+        </fieldset>}
         <div className="panel figma-campos-reporte">
           <div className="figma-rasgos-reporte">
             <div className="figma-nombre-reporte">
@@ -249,25 +292,6 @@ export default function Reportar() {
             <label className="etiqueta" htmlFor="descripcion">Descripción y señas particulares</label>
             <textarea id="descripcion" required rows={4} maxLength={2000} className="input" placeholder="Collar rojo, mancha blanca en el pecho…" {...campo('descripcion')} />
           </div>
-
-          {tipo === 2 && (
-            <fieldset className="space-y-2 rounded-xl border border-borde p-3">
-              <legend className="etiqueta px-1">Traslado a un refugio (opcional)</legend>
-              <p className="text-xs text-suave">Selecciona un refugio solo si el animal ya fue trasladado. El refugio podrá confirmar la recepción.</p>
-              <Alerta>{errorRefugios}</Alerta>
-              <label className="etiqueta" htmlFor="custodia">Refugio que recibió al animal</label>
-              <select id="custodia" className="input" disabled={Boolean(custodia?.confirmadaEn) || !refugios} {...campo('idRefugioCustodia')}>
-                <option value="">Sin traslado a un refugio</option>
-                {custodia && !refugios?.some((r) => r.id === custodia.idRefugio) && <option value={custodia.idRefugio}>{custodia.nombre}</option>}
-                {refugios?.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
-              </select>
-              {refugios?.length === 0 && <p className="text-xs text-suave">Por ahora no hay refugios disponibles para asociar.</p>}
-              {datos.idRefugioCustodia && <div>
-                <label className="etiqueta" htmlFor="notas-custodia">Notas de entrega para las partes vinculadas</label>
-                <textarea id="notas-custodia" className="input" maxLength={500} rows={2} {...campo('notasCustodia')} />
-              </div>}
-            </fieldset>
-          )}
 
           <fieldset>
             <legend className="etiqueta">Contacto (al menos uno; solo lo verán usuarios registrados)</legend>

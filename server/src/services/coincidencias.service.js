@@ -6,6 +6,7 @@ const { consulta, una, transaccion } = require('../lib/db');
 const ia = require('../lib/ia');
 const { distanciaKm, tieneCoordenadas } = require('../lib/geo');
 const { TIPO, ESTADO, CRITERIO, ESTADO_COINCIDENCIA, TIPO_NOTIFICACION } = require('../lib/constantes');
+const { avisarCaso } = require('./avistamientos.service');
 
 const UMBRAL = 60; // porcentaje mínimo para sugerir una coincidencia
 const PESOS = { [CRITERIO.RAZA]: 15, [CRITERIO.COLOR]: 25, [CRITERIO.TAMANO]: 10, [CRITERIO.UBICACION]: 25, [CRITERIO.FECHA]: 25 };
@@ -169,9 +170,10 @@ async function analizarReporte(idPublicacion) {
         );
       }
       if (fila.esNueva) {
-        const [custodia] = await tx.consulta(`SELECT r.nombre FROM custodia_refugio c JOIN refugio r USING (id_refugio) WHERE c.id_publicacion = $1`, [hallada.idPublicacion]);
+        const [custodia] = await tx.consulta(`SELECT r.nombre, r.id_usuario, r.autorizado, c.confirmada_en
+          FROM custodia_refugio c JOIN refugio r USING (id_refugio) WHERE c.id_publicacion = $1`, [hallada.idPublicacion]);
         const cuando = [hallada.fechaEvento, hallada.horaEvento].filter(Boolean).join(' ');
-        const donde = custodia ? `Posible traslado a ${custodia.nombre}. ` : '';
+        const donde = custodia ? `${custodia.nombre}: ${custodia.confirmadaEn ? 'recepción confirmada' : 'traslado informado, pendiente de confirmación'}. ` : '';
         const mensaje = `Posible avistamiento de ${perdida.nombreAnimal || 'tu mascota'} (${Math.round(porcentaje)} % de similitud). ${donde}${hallada.sector}, ${hallada.canton} · ${cuando}.`;
         await tx.consulta(
           `INSERT INTO notificacion (id_usuario, id_publicacion, id_tipo_notificacion, mensaje) VALUES ($1, $2, $3, $4)`,
@@ -180,6 +182,9 @@ async function analizarReporte(idPublicacion) {
             mensaje.slice(0, 255),
           ],
         );
+        if (custodia?.autorizado && custodia.idUsuario !== perdida.idUsuario) {
+          await avisarCaso(tx.consulta, hallada.idPublicacion, [custodia.idUsuario], 'Hay una posible coincidencia para un animal trasladado a tu refugio. Puedes contactar al propietario desde el avistamiento.');
+        }
       }
       return fila.esNueva;
     });

@@ -32,7 +32,7 @@ const recibir = (u) => request(app).patch(`/api/publicaciones/${hallada.id}/cust
 const responder = (u, id, idEstado) => request(app).patch(`/api/coincidencias/${id}`).set(conToken(u.token)).send({ idEstado });
 
 test('registra un avistamiento sin similitudes y mantiene vigente la desaparición', async () => {
-  const r = await publicarAvistamiento({ idEspecie: 2, idRaza: '', horaEvento: '16:45' });
+  const r = await publicarAvistamiento({ idEspecie: 2, idRaza: '', horaEvento: '16:45', situacionTraslado: 'sin_traslado' });
   expect(r.status).toBe(201);
   expect(r.body).toMatchObject({ idTipo: 2, idEstado: 3, horaEvento: '16:45', custodia: null });
   expect(await analizarReporte(r.body.id)).toBe(0);
@@ -42,10 +42,14 @@ test('registra un avistamiento sin similitudes y mantiene vigente la desaparici�
   expect((await publicarAvistamiento({ horaEvento: '26:01' })).status).toBe(400);
   expect((await publicarAvistamiento({ idRefugioCustodia: otroRefugio.usuario.refugio.id })).status).toBe(400);
   expect((await publicarAvistamiento({ notasCustodia: 'Sin refugio asignado', idRefugioCustodia: '' })).status).toBe(400);
+  expect((await publicarAvistamiento({ situacionTraslado: 'realizado' })).status).toBe(400);
+  expect((await publicarAvistamiento({ situacionTraslado: 'sin_traslado', idRefugioCustodia: refugio.usuario.refugio.id })).status).toBe(400);
+  expect((await publicarAvistamiento({ situacionTraslado: 'futuro' })).status).toBe(400);
+  expect((await publicar(testigo.token, { situacionTraslado: 'realizado', idRefugioCustodia: refugio.usuario.refugio.id })).status).toBe(400);
 });
 
 test('analiza fotos si el servicio está disponible, registra la similitud y avisa al propietario', async () => {
-  const r = await publicarAvistamiento({ horaEvento: '09:15', idRefugioCustodia: refugio.usuario.refugio.id, notasCustodia: 'Recepción en el área de cuarentena' });
+  const r = await publicarAvistamiento({ horaEvento: '09:15', situacionTraslado: 'realizado', idRefugioCustodia: refugio.usuario.refugio.id, notasCustodia: 'Recepción en el área de cuarentena', correoContacto: 'testigo-aviso@findmypet.test' });
   expect(r.status).toBe(201);
   hallada = r.body;
   expect(hallada.custodia).toMatchObject({ nombre: 'Refugio Traslado', confirmadaEn: null });
@@ -58,6 +62,8 @@ test('analiza fotos si el servicio está disponible, registra la similitud y avi
   expect(sugerencia).toMatchObject({ idEstado: 1, encontrada: { id: hallada.id, horaEvento: '09:15', custodia: { nombre: 'Refugio Traslado' } } });
   expect(sugerencia.criterios).toContainEqual({ criterio: 'Imagen', puntaje: 81 });
   expect((await notificaciones(propietario)).body.datos).toContainEqual(expect.objectContaining({ tipo: 'Coincidencia IA', idPublicacion: perdida.id, mensaje: expect.stringContaining('09:15') }));
+  expect((await notificaciones(propietario)).body.datos[0].mensaje).toContain('Refugio Traslado: traslado informado, pendiente de confirmación');
+  expect((await notificaciones(refugio)).body.datos).toContainEqual(expect.objectContaining({ tipo: 'Avistamiento', idPublicacion: hallada.id, mensaje: expect.stringContaining('posible coincidencia') }));
   expect((await detalle(perdida.id)).body.idEstado).toBe(1);
 });
 
@@ -74,6 +80,12 @@ test('restringe coordinación y notas a las partes vinculadas y habilita el cont
   expect(paraPropietario.body.ubicacion.sector).toBe('Las Piñas');
   expect((await coordinar(visitante)).status).toBe(403);
   expect((await coordinar(propietario)).body.notas).toBe('Recepción en el área de cuarentena');
+  expect((await coordinar(propietario)).body.autor).toBeNull();
+  const privacidad = await request(app).patch(`/api/seguridad/contactos/${hallada.id}`).set(conToken(testigo.token)).send({ idTipoContactoVisible: 2 });
+  expect(privacidad.status).toBe(200);
+  const seguimiento = await coordinar(refugio);
+  expect(seguimiento.body.autor).toEqual({ nombre: 'Usuario P.', contactos: [{ tipo: 'WhatsApp', valor: '0900000004' }] });
+  expect(seguimiento.body.coincidencias).toEqual([expect.objectContaining({ id: perdida.id, identificada: false, recuperada: false, destino: propietario.id })]);
   expect((await mensaje(propietario, visitante.id, 'Prueba de permiso')).status).toBe(403);
   expect((await mensaje(propietario, refugio.id, '¿Puedo acercarme a comprobar el parecido?')).status).toBe(201);
   expect((await coordinar(refugio)).body.mensajes[0]).toMatchObject({ mio: false, contenido: '¿Puedo acercarme a comprobar el parecido?' });
@@ -81,6 +93,8 @@ test('restringe coordinación y notas a las partes vinculadas y habilita el cont
   expect((await mensaje(refugio, testigo.id, 'Gracias por traer al animal')).status).toBe(201);
   expect((await coordinar(testigo)).body.mensajes[0].contenido).toBe('Gracias por traer al animal');
   expect((await coordinar(propietario)).body.mensajes).toHaveLength(1);
+  expect((await mensaje(refugio, propietario.id, 'Podemos coordinar desde el refugio')).status).toBe(201);
+  expect((await coordinar(propietario)).body.mensajes.at(-1).contenido).toBe('Podemos coordinar desde el refugio');
   expect((await recibir(testigo)).status).toBe(403);
   expect((await recibir(otroRefugio)).status).toBe(403);
   expect((await recibir(refugio)).status).toBe(204);
@@ -96,6 +110,7 @@ test('confirma o descarta similitud sin modificar el estado de la desaparición'
   expect((await responder(propietario, sugerencia.id, 2)).status).toBe(200);
   expect((await responder(propietario, sugerencia.id, 2)).status).toBe(200);
   expect((await notificaciones(testigo)).body.datos.filter((n) => n.mensaje.includes('cree que el animal'))).toHaveLength(1);
+  expect((await notificaciones(refugio)).body.datos.filter((n) => n.mensaje.includes('indicó que podría ser'))).toHaveLength(1);
   expect((await coordinar(propietario)).body.destinos).toContainEqual(expect.objectContaining({ id: testigo.id }));
   expect((await detalle(perdida.id)).body.idEstado).toBe(1);
   const otro = (await publicarAvistamiento({})).body;
@@ -116,11 +131,14 @@ test('solo el propietario confirma la recuperación y un tercero no edita el tra
   const recuperar = (u) => request(app).patch(`/api/publicaciones/${perdida.id}/estado`).set(conToken(u.token)).send({ idEstado: 2 });
   expect((await recuperar(refugio)).status).toBe(403);
   expect((await recuperar(propietario)).status).toBe(200);
+  expect((await recuperar(propietario)).status).toBe(200);
   expect((await detalle(perdida.id)).body.estado).toBe('Recuperada');
   expect((await detalle(hallada.id)).body.idEstado).toBe(3);
   expect((await request(app).get('/api/publicaciones?tipo=1&activas=true')).body.datos).toHaveLength(0);
   expect(await analizarReporte(hallada.id)).toBe(0);
-  expect((await db.una('SELECT COUNT(*)::int AS n FROM mensaje_avistamiento')).n).toBe(2);
+  expect((await db.una('SELECT COUNT(*)::int AS n FROM mensaje_avistamiento')).n).toBe(3);
+  expect((await coordinar(refugio)).body.coincidencias).toContainEqual(expect.objectContaining({ id: perdida.id, identificada: true, recuperada: true }));
+  expect((await notificaciones(refugio)).body.datos.filter((n) => n.mensaje.includes('confirmó que recuperó'))).toHaveLength(1);
 });
 
 test('permite informar un traslado después de publicar y descarta avistamientos anteriores a la pérdida', async () => {
