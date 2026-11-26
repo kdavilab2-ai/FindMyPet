@@ -150,7 +150,8 @@ async function buscarPropia(req) {
 async function listar(req, res) {
   const f = req.query;
   const pagina = Math.max(1, Number(f.pagina) || 1);
-  const condiciones = [];
+  // Los aportes vinculados se muestran en la ficha de la desaparición.
+  const condiciones = ['r.id_desaparicion_origen IS NULL'];
   const params = [];
   const agregar = (sql, valor) => { params.push(valor); condiciones.push(sql.replaceAll('?', `$${params.length}`)); };
 
@@ -169,7 +170,7 @@ async function listar(req, res) {
     agregar("CONCAT_WS(' ', p.nombre_animal, p.descripcion, rz.nombre, e.nombre, s.nombre, c.nombre, ub.direccion, rf.nombre) ILIKE ?", `%${texto(f.q)}%`);
   }
 
-  const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+  const where = `WHERE ${condiciones.join(' AND ')}`;
   const datos = await consulta(
     `SELECT *, COUNT(*) OVER()::int AS total_filas FROM (${SELECT_PUBLICACION} ${where}) x
      ORDER BY fecha_creacion DESC, id DESC LIMIT ${POR_PAGINA} OFFSET ${(pagina - 1) * POR_PAGINA}`,
@@ -188,7 +189,8 @@ async function listar(req, res) {
 // Totales para las tarjetas de la página de inicio
 async function resumen(req, res) {
   const filas = await consulta(
-    'SELECT id_tipo, COUNT(*)::int AS total FROM publicacion WHERE id_estado IN (1, 3, 5) GROUP BY id_tipo',
+    `SELECT p.id_tipo, COUNT(*)::int AS total FROM publicacion p LEFT JOIN reporte r USING (id_publicacion)
+     WHERE p.id_estado IN (1, 3, 5) AND r.id_desaparicion_origen IS NULL GROUP BY p.id_tipo`,
   );
   const r = { desaparecidas: 0, encontradas: 0, adopcion: 0 };
   for (const f of filas) r[{ 1: 'desaparecidas', 2: 'encontradas', 3: 'adopcion' }[f.idTipo]] = f.total;

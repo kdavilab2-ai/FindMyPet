@@ -160,7 +160,8 @@ test('permite informar un traslado después de publicar y descarta avistamientos
 test('publica observaciones y fotos en la ficha de origen con permisos de contacto separados', async () => {
   const origen = (await publicar(propietario.token, { nombreAnimal: 'Publicación del hallazgo' })).body;
   const otraFicha = (await publicar(propietario.token, { nombreAnimal: 'Otra mascota perdida' })).body;
-  const general = await publicarAvistamiento({ descripcion: 'Avistamiento general de la comunidad' });
+  const general = await publicarAvistamiento({ descripcion: 'Hallazgo general de la comunidad' });
+  const resumenAntes = (await request(app).get('/api/publicaciones/resumen')).body;
   const datos = {
     idDesaparicionOrigen: origen.id, descripcion: 'Animal visto junto al parque, caminando al norte', horaEvento: '10:30',
   };
@@ -172,6 +173,13 @@ test('publica observaciones y fotos en la ficha de origen con permisos de contac
     idRefugioCustodia: refugio.usuario.refugio.id, notasCustodia: 'Información de entrega reservada',
   });
   expect(segundo.status).toBe(201);
+  const encontrados = await request(app).get('/api/publicaciones').query({ tipo: 2, q: 'Hallazgo general de la comunidad' });
+  expect(encontrados.body.datos).toEqual([expect.objectContaining({ id: general.body.id })]);
+  const destacados = await request(app).get('/api/publicaciones').query({ activas: true, q: datos.descripcion });
+  expect(destacados.body).toMatchObject({ total: 0, datos: [] });
+  const vinculados = await request(app).get('/api/publicaciones').query({ tipo: 2, q: segundo.body.descripcion });
+  expect(vinculados.body).toMatchObject({ total: 0, datos: [] });
+  expect((await request(app).get('/api/publicaciones/resumen')).body.encontradas).toBe(resumenAntes.encontradas);
   const ruta = `/api/publicaciones/${origen.id}/avistamientos`;
   const visitas = await request(app).get(ruta);
   expect(visitas.status).toBe(200);

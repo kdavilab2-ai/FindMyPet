@@ -9,7 +9,7 @@ import ConfirmarRecuperacion from '../components/ConfirmarRecuperacion';
 import EnlacesContacto from '../components/EnlacesContacto';
 import AvistamientosPublicacion from '../components/AvistamientosPublicacion';
 import {
-  Alerta, Cargando, ESTILO_TIPO, IconoEspecie, InsigniaEstado, InsigniaTipo, Modal, formatoFecha, formatoFechaHora,
+  Alerta, Cargando, IconoEspecie, InsigniaEstado, InsigniaTipo, Modal, formatoFecha, formatoFechaHora, textoTipoPublicacion,
 } from '../components/Comunes';
 
 const COLOR_TIPO = { 1: '#F05A5A', 2: '#1E8FFF', 3: '#1FA463' };
@@ -108,14 +108,14 @@ export default function Detalle() {
 
         <div className="space-y-5">
           <div>
-            <div className="flex flex-wrap items-center gap-2"><InsigniaTipo idTipo={p.idTipo} /><InsigniaEstado idEstado={p.idEstado} estado={p.estado} /></div>
+            <div className="flex flex-wrap items-center gap-2"><InsigniaTipo idTipo={p.idTipo} idDesaparicionOrigen={p.idDesaparicionOrigen} /><InsigniaEstado idEstado={p.idEstado} estado={p.estado} /></div>
             <h1 className="mt-3 text-3xl text-lavanda sm:text-4xl">{nombre}</h1>
             <p className="mt-1 text-sm text-suave">
               {p.idTipo === 3 ? <>Publicado por <Link to={`/refugios/${p.idRefugio}`} className="text-lavanda hover:underline">{p.refugio}</Link></> : <>📍 {p.ubicacion?.sector}, {p.ubicacion?.canton} · {formatoFecha(p.fechaEvento)}</>}
             </p>
           </div>
 
-          <Alerta tipo="exito">{aviso || (state?.creada && (p.idTipo === 2 ? 'Avistamiento registrado. Buscaremos posibles coincidencias.' : 'Publicación creada.'))}</Alerta>
+          <Alerta tipo="exito">{aviso || (state?.creada && (p.idTipo === 2 ? 'Reporte registrado. Buscaremos posibles coincidencias.' : 'Publicación creada.'))}</Alerta>
           <Alerta>{error}</Alerta>
 
           <dl className="panel grid grid-cols-2 gap-4 p-5 sm:grid-cols-3">
@@ -199,7 +199,7 @@ export default function Detalle() {
           <button className="btn btn-peligro" onClick={eliminar}>Eliminar</button>
         </div>
       </Modal>
-      <p className="sr-only">{ESTILO_TIPO[p.idTipo].texto}</p>
+      <p className="sr-only">{textoTipoPublicacion(p)}</p>
     </div>
   );
 }

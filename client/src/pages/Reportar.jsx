@@ -18,7 +18,7 @@ const TIPOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 
 
 const PESTANAS = [
   { tipo: 1, texto: 'Perdida', consejo: 'Una foto reciente y nítida, de frente y de cuerpo entero, aumenta las posibilidades de encontrarla.' },
-  { tipo: 2, texto: 'Avistamiento', consejo: 'Fotografía al animal desde varios ángulos y anota señas particulares como un collar, manchas o cicatrices.' },
+  { tipo: 2, texto: 'Encontrado', consejo: 'Fotografía al animal desde varios ángulos y anota señas particulares como un collar, manchas o cicatrices.' },
   { tipo: 3, texto: 'Adopción', consejo: 'Cuenta su carácter, su estado de salud y con qué tipo de familia se llevaría mejor.' },
 ];
 
@@ -218,7 +218,7 @@ export default function Reportar() {
         </div>
       )}
       {!id && !informaTraslado && !vinculado && !puedeAdopcion && <p className="mt-2 text-xs text-suave">Las adopciones las publican refugios y fundaciones autorizados.</p>}
-      {tipo === 2 && !informaTraslado && !vinculado && <p className="mt-3 max-w-2xl text-sm text-suave">¿Viste un animal parecido a una mascota perdida? Registra el avistamiento. Si la comparación sugiere una coincidencia, avisaremos a su propietario. El reporte de desaparición seguirá activo hasta que su propietario confirme la recuperación.</p>}
+      {tipo === 2 && !informaTraslado && !vinculado && <p className="mt-3 max-w-2xl text-sm text-suave">Si encontraste un animal y aún no sabes a qué caso pertenece, publícalo en Encontrados. Para añadir un avistamiento a una mascota concreta, abre su ficha en <Link to="/perdidas" className="text-lavanda underline">Mascotas perdidas</Link>.</p>}
 
       {vinculado && errorOrigen ? <div className="mt-4"><Alerta>{errorOrigen}</Alerta></div> :
       <form onSubmit={enviar} className="figma-formulario-reporte">
@@ -355,7 +355,7 @@ export default function Reportar() {
           <div className="figma-acciones-reporte">
             {vinculado ? <Link to={volverA} className="btn btn-secundario">Cancelar</Link> :
               <button type="button" className="btn btn-secundario" onClick={() => navegar(-1)}>Cancelar</button>}
-            <button className="btn btn-primario px-8" disabled={enviando || (informaTraslado && !custodia && !refugios?.length)}>{enviando ? (catalogos.iaDisponible ? 'Validando fotos con IA…' : 'Publicando…') : id ? 'Guardar cambios' : informaTraslado ? 'Registrar traslado' : tipo === 2 ? 'Registrar avistamiento' : 'Publicar reporte'}</button>
+            <button className="btn btn-primario px-8" disabled={enviando || (informaTraslado && !custodia && !refugios?.length)}>{enviando ? (catalogos.iaDisponible ? 'Validando fotos con IA…' : 'Publicando…') : id ? 'Guardar cambios' : informaTraslado ? 'Registrar traslado' : vinculado ? 'Publicar avistamiento' : 'Publicar reporte'}</button>
           </div>
         </div>
 
