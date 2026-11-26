@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const rateLimit = require('express-rate-limit');
 const a = require('../lib/async');
-const { recibirArchivos } = require('../lib/archivos');
+const { recibirArchivos, recibirFotoEntrega } = require('../lib/archivos');
 const { verificarToken, sesionOpcional, verificarRol } = require('../middlewares/auth');
 const { ROL } = require('../lib/constantes');
 
@@ -83,6 +83,8 @@ router.post('/publicaciones/:id/coordinacion', verificarToken, rateLimit({
   windowMs: 60_000, limit: 15, standardHeaders: true, legacyHeaders: false,
   keyGenerator: (req) => String(req.usuario.id), message: { error: 'Espera un minuto antes de enviar más mensajes' },
 }), a(avistamientos.enviar));
+router.post('/publicaciones/:id/custodia', verificarToken, recibirFotoEntrega, a(avistamientos.registrarEntrega));
+router.get('/publicaciones/:id/custodia/foto', verificarToken, a(avistamientos.fotoEntrega));
 router.patch('/publicaciones/:id/custodia/confirmar', verificarToken, verificarRol(ROL.REFUGIO), a(avistamientos.confirmar));
 router.post('/publicaciones/:id/interes', verificarToken, a(publicaciones.interesAdopcion));
 

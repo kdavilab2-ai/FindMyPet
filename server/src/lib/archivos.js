@@ -11,6 +11,10 @@ const recibirArchivos = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_VIDEO, files: MAX_ARCHIVOS },
 }).array('archivos', MAX_ARCHIVOS);
+const recibirFotoEntrega = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_IMAGEN, files: 1 },
+}).single('fotoEntrega');
 
 // RNF-18: se valida el contenido real del archivo, no solo su extensión
 function esVideo(buffer) {
@@ -54,4 +58,4 @@ async function procesarArchivo(archivo, indice) {
   return { tipo: TIPO_MULTIMEDIA.IMAGEN, mime: 'image/webp', buffer };
 }
 
-module.exports = { recibirArchivos, procesarArchivo };
+module.exports = { recibirArchivos, recibirFotoEntrega, procesarArchivo };

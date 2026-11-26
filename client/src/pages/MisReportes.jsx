@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { useCatalogos } from '../context/CatalogosContext';
 import { Alerta, Cargando, ESTILO_TIPO, Modal, Vacio, formatoFecha } from '../components/Comunes';
@@ -10,8 +10,9 @@ import ConfirmarRecuperacion from '../components/ConfirmarRecuperacion';
 // Figura 5 y 10: lista de reportes del usuario con su estado (RF-05, RF-06, RF-14)
 export default function MisReportes() {
   const { catalogos } = useCatalogos();
+  const [params, setParams] = useSearchParams();
   const [datos, setDatos] = useState(null);
-  const [filtro, setFiltro] = useState(0);
+  const filtro = Number(params.get('tipo')) || 0;
   const [error, setError] = useState('');
   const [eliminar, setEliminar] = useState(null);
   const [recuperar, setRecuperar] = useState(null);
@@ -30,16 +31,22 @@ export default function MisReportes() {
 
   return (
     <div className="figma-pagina figma-mis-reportes">
-      <EncabezadoFigma titulo="Mis reportes" />
+      <EncabezadoFigma titulo="Mis reportes">
+        {filtro === 2 && 'Abre un avistamiento para consultar su estado o informar una entrega al refugio.'}
+      </EncabezadoFigma>
       <div className="figma-filtros-reportes" role="group" aria-label="Filtrar mis reportes">
         {[[0, 'Todos'], [1, 'Perdidas'], [2, 'Avistamientos'], [3, 'Adopción']].map(([v, t]) => (
-          <button key={v} onClick={() => setFiltro(v)} aria-pressed={filtro === v}>{t}</button>
+          <button key={v} onClick={() => setParams(v ? { tipo: String(v) } : {}, { replace: true })} aria-pressed={filtro === v}>{t}</button>
         ))}
       </div>
       <Alerta>{error}</Alerta>
       {!datos && !error && <Cargando />}
       {datos && (lista.length === 0 ? (
-        <Vacio titulo="No tienes reportes aquí"><Link to="/reportar" className="text-lavanda underline">Crea tu primer reporte</Link></Vacio>
+        <Vacio titulo={filtro === 2 ? 'Aún no tienes avistamientos' : 'No tienes reportes aquí'}>
+          <Link to={filtro === 2 ? '/reportar?tipo=2' : '/reportar'} className="text-lavanda underline">
+            {filtro === 2 ? 'Registra un avistamiento' : 'Crea tu primer reporte'}
+          </Link>
+        </Vacio>
       ) : (
         <div className="figma-tabla-reportes">
           <div className="figma-cabecera-reportes" aria-hidden="true">

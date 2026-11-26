@@ -2,11 +2,13 @@ const { consulta, transaccion } = require('../lib/db');
 const { ErrorHttp } = require('../middlewares/errores');
 const { entero, texto } = require('../lib/validar');
 const { TIPO, ESTADO, ESTADO_CUENTA, ESTADO_COINCIDENCIA } = require('../lib/constantes');
-const { propietarios, avisarCaso } = require('../services/avistamientos.service');
+const { propietarios, avisarCaso, guardarCustodia } = require('../services/avistamientos.service');
 const { contactosPublicacion } = require('../lib/contactos');
+const { procesarArchivo } = require('../lib/archivos');
 
 async function cargarCaso(consultar, id, bloqueo = '') {
-  const [caso] = await consultar(`SELECT cr.notas, cr.informada_en, cr.confirmada_en, p.id_usuario AS autor, rf.id_usuario AS refugio,
+  const [caso] = await consultar(`SELECT cr.notas, cr.informada_en, cr.confirmada_en, cr.entregada_en, cr.persona_receptora,
+    cr.foto_entrega IS NOT NULL AS tiene_foto, p.id_usuario AS autor, rf.id_usuario AS refugio,
     a.nombres || ' ' || LEFT(a.apellidos, 1) || '.' AS nombre_autor,
     rf.autorizado AND r.id_estado_cuenta = $3 AS refugio_activo, a.id_estado_cuenta = $3 AS autor_activo, rf.nombre
     FROM custodia_refugio cr JOIN publicacion p USING (id_publicacion) JOIN refugio rf USING (id_refugio)
@@ -14,6 +16,54 @@ async function cargarCaso(consultar, id, bloqueo = '') {
     WHERE p.id_publicacion = $1 AND p.id_tipo = $2 ${bloqueo}`, [id, TIPO.ENCONTRADA, ESTADO_CUENTA.ACTIVA]);
   if (!caso) throw new ErrorHttp(404, 'No hay un traslado asociado a este avistamiento');
   return caso;
+}
+
+// RF-07, RF-10, RF-11 y RNF-05: registra la entrega sobre el avistamiento original del autor.
+async function registrarEntrega(req, res) {
+  const id = entero(req.params.id);
+  const usuario = req.usuario.id;
+  const { idRefugioCustodia, entregadaEn, personaReceptora: nombre, notasCustodia } = req.body || {};
+  const personaReceptora = texto(nombre);
+  const fecha = new Date(entregadaEn);
+  if (typeof entregadaEn !== 'string' || !Number.isFinite(fecha.getTime())
+    || fecha.toISOString() !== entregadaEn || fecha.getTime() > Date.now()) {
+    throw new ErrorHttp(400, 'Indica una fecha y hora válidas de entrega que no estén en el futuro');
+  }
+  if (personaReceptora.length > 120) throw new ErrorHttp(400, 'El nombre de la persona receptora admite hasta 120 caracteres');
+
+  await transaccion(async (tx) => {
+    const [publicacion] = await tx.consulta(`SELECT id_usuario, id_tipo FROM publicacion
+      WHERE id_publicacion = $1 FOR UPDATE`, [id]);
+    if (!publicacion || publicacion.idTipo !== TIPO.ENCONTRADA) throw new ErrorHttp(404, 'Avistamiento no encontrado');
+    if (publicacion.idUsuario !== usuario) throw new ErrorHttp(403, 'Solo el autor del avistamiento puede registrar la entrega');
+    const [custodia] = await tx.consulta('SELECT 1 FROM custodia_refugio WHERE id_publicacion = $1', [id]);
+    if (custodia) throw new ErrorHttp(409, 'El avistamiento ya tiene un traslado registrado');
+    if (req.file && !['image/jpeg', 'image/png', 'image/webp'].includes(req.file.mimetype)) {
+      throw new ErrorHttp(400, 'La foto de entrega debe ser JPG, PNG o WEBP');
+    }
+    const foto = req.file ? await procesarArchivo(req.file, 0) : null;
+    await guardarCustodia(tx.consulta, id, usuario, {
+      situacionTraslado: 'realizado', idRefugioCustodia, notasCustodia,
+    });
+    await tx.consulta(`UPDATE custodia_refugio SET entregada_en = $1, persona_receptora = $2, foto_entrega = $3
+      WHERE id_publicacion = $4`, [fecha, personaReceptora || null, foto?.buffer || null, id]);
+  });
+  res.status(201).json({ id });
+}
+
+async function fotoEntrega(req, res) {
+  const id = entero(req.params.id);
+  const foto = await transaccion(async (tx) => {
+    const caso = await cargarCaso(tx.consulta, id, 'FOR SHARE OF cr');
+    const usuario = req.usuario.id;
+    if (usuario !== caso.autor && !(usuario === caso.refugio && caso.refugioActivo)) {
+      throw new ErrorHttp(403, 'La foto de entrega es privada para el autor y el refugio asignado');
+    }
+    const [archivo] = await tx.consulta('SELECT foto_entrega FROM custodia_refugio WHERE id_publicacion = $1', [id]);
+    if (!archivo.fotoEntrega) throw new ErrorHttp(404, 'Este traslado no tiene una foto de entrega');
+    return archivo.fotoEntrega;
+  });
+  res.set('Cache-Control', 'no-store').type('image/webp').send(foto);
 }
 
 // RF-10, RF-11 y RNF-05: coordina el traslado entre las cuentas vinculadas, sin compartir datos del perfil.
@@ -59,6 +109,11 @@ async function coordinacion(req, res) {
     [id, ESTADO_COINCIDENCIA.SUGERIDA, ESTADO_COINCIDENCIA.CONFIRMADA, ESTADO.RECUPERADA, esRefugio, usuario, esAutor]);
     const autor = esRefugio ? { nombre: caso.nombreAutor, contactos: await contactosPublicacion(tx.consulta, id) } : null;
     return { notas: caso.notas, puedeConfirmar, esRefugio, autor,
+      entrega: caso.entregadaEn ? {
+        fecha: caso.entregadaEn,
+        personaReceptora: esAutor || esRefugio ? caso.personaReceptora : null,
+        tieneFoto: (esAutor || esRefugio) && caso.tieneFoto,
+      } : null,
       refugio: { nombre: caso.nombre, informadaEn: caso.informadaEn, confirmadaEn: caso.confirmadaEn },
       coincidencias: coincidencias.map(({ idUsuario, ...c }) => ({ ...c, destino: destinos.has(idUsuario) ? idUsuario : null })),
       destinos: [...destinos].map(([id, etiqueta]) => ({ id, etiqueta })),
@@ -110,4 +165,4 @@ async function delRefugio(req, res) {
   res.set('Cache-Control', 'no-store').json(datos);
 }
 
-module.exports = { coordinacion, enviar, confirmar, delRefugio };
+module.exports = { registrarEntrega, fotoEntrega, coordinacion, enviar, confirmar, delRefugio };

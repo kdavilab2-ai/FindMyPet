@@ -11,6 +11,7 @@ export default function CoordinacionAvistamiento({ id, nombreAnimal, alConfirmar
   const [mensaje, setMensaje] = useState({});
   const [ocupado, setOcupado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
+  const [foto, setFoto] = useState('');
   const campoMensaje = useRef(null);
   const ruta = `/publicaciones/${id}/coordinacion`;
 
@@ -26,6 +27,7 @@ export default function CoordinacionAvistamiento({ id, nombreAnimal, alConfirmar
   }, [ruta]);
 
   useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => () => { if (foto) URL.revokeObjectURL(foto); }, [foto]);
 
   const operar = async (accion) => {
     setOcupado(true);
@@ -60,12 +62,25 @@ export default function CoordinacionAvistamiento({ id, nombreAnimal, alConfirmar
       <h2 id="coordinacion" className="text-base text-lavanda">Coordinación del traslado</h2>
       <div className="rounded-xl border border-borde p-3 text-sm">
         <p><strong>Refugio responsable</strong> · {datos.refugio.nombre}</p>
+        {datos.entrega && <p className="text-suave">Entrega el {formatoFechaHora(datos.entrega.fecha)}</p>}
+        {datos.entrega?.personaReceptora && <p className="break-words text-suave">Recibió: {datos.entrega.personaReceptora}</p>}
         <p className="text-suave">Traslado informado el {formatoFechaHora(datos.refugio.informadaEn)}</p>
         <p className="text-suave">{datos.refugio.confirmadaEn ? `Recepción confirmada el ${formatoFechaHora(datos.refugio.confirmadaEn)}` : 'Recepción pendiente de confirmación'}</p>
       </div>
       <p className="text-sm text-suave">Los mensajes son visibles para quien los envía y quien los recibe.</p>
       {datos.notas && <p className="break-words text-sm"><strong>Notas de entrega</strong><br />{datos.notas}</p>}
       <Alerta>{mensaje.error}</Alerta><Alerta tipo="exito">{mensaje.ok}</Alerta>
+      {datos.entrega?.tieneFoto && (foto ? (
+        <img src={foto} alt="Fotografía de la entrega al refugio" className="max-h-64 max-w-full rounded-xl object-contain" />
+      ) : (
+        <button type="button" className="btn btn-secundario" disabled={ocupado}
+          onClick={async () => {
+            setOcupado(true);
+            try { setFoto(URL.createObjectURL(await api.descargar(`/publicaciones/${id}/custodia/foto`))); }
+            catch (e) { setMensaje({ error: e.message }); }
+            finally { setOcupado(false); }
+          }}>Ver foto de entrega</button>
+      ))}
       {datos.puedeConfirmar && <button className="btn btn-secundario" disabled={ocupado} onClick={() => setConfirmar(true)}>Confirmar recepción</button>}
       {datos.autor && <div className="space-y-2 rounded-xl border border-borde p-3 text-sm">
         <h3 className="font-semibold">Persona que reportó el avistamiento</h3>

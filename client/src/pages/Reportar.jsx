@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, urlArchivo } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useCatalogos } from '../context/CatalogosContext';
@@ -29,17 +29,13 @@ export default function Reportar() {
   const { usuario, refugioAutorizado, esAdmin } = useAuth();
   const { catalogos } = useCatalogos();
   const puedeAdopcion = refugioAutorizado || esAdmin;
-  const solicitaTraslado = params.get('traslado') === '1';
-
-  const [tipoElegido, setTipo] = useState(() => {
+  const [tipo, setTipo] = useState(() => {
     const tipoSolicitado = Number(params.get('tipo'));
     return tipoSolicitado === 2 || (tipoSolicitado === 3 && puedeAdopcion) ? tipoSolicitado : 1;
   });
-  const tipo = !id && solicitaTraslado ? 2 : tipoElegido;
   const [datos, setDatos] = useState({
     nombreAnimal: '', idEspecie: '1', idRaza: '', idTamano: '', colores: [], descripcion: '', fechaEvento: hoy(),
     estadoSalud: '', telefono: '', whatsapp: usuario?.telefono || '', correoContacto: '',
-    idRefugioCustodia: '', notasCustodia: '',
   });
   const [horaEvento, setHoraEvento] = useState('');
   const [ubicacion, setUbicacion] = useState(ubicacionDesdeApi(null));
@@ -49,20 +45,6 @@ export default function Reportar() {
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [cargando, setCargando] = useState(Boolean(id));
-  const [refugios, setRefugios] = useState(null);
-  const [errorRefugios, setErrorRefugios] = useState('');
-  const [custodia, setCustodia] = useState(null);
-  const informaTraslado = tipo === 2 && (solicitaTraslado || Boolean(custodia));
-
-  useEffect(() => {
-    if (!informaTraslado) return;
-    let vigente = true;
-    setErrorRefugios('');
-    api.get('/refugios').then((lista) => { if (vigente) setRefugios(lista); })
-      .catch((e) => { if (vigente) setErrorRefugios(e.message); });
-    return () => { vigente = false; };
-  }, [informaTraslado]);
-
   useEffect(() => {
     if (!id) return;
     api.get(`/publicaciones/${id}`).then((p) => {
@@ -73,10 +55,8 @@ export default function Reportar() {
         idTamano: p.idTamano ? String(p.idTamano) : '', colores: p.colores.map((c) => c.id), descripcion: p.descripcion,
         fechaEvento: p.fechaEvento || hoy(), estadoSalud: p.estadoSalud || '',
         telefono: contacto('Teléfono'), whatsapp: contacto('WhatsApp'), correoContacto: contacto('Correo'),
-        idRefugioCustodia: String(p.custodia?.idRefugio || ''), notasCustodia: p.notasCustodia || '',
       });
       setHoraEvento(p.horaEvento || '');
-      setCustodia(p.custodia);
       if (p.idTipo !== 3) setUbicacion(ubicacionDesdeApi(p.ubicacion));
       setExistentes(p.multimedia);
       setCargando(false);
@@ -110,7 +90,6 @@ export default function Reportar() {
   const enviar = async (e) => {
     e.preventDefault();
     setError('');
-    if (informaTraslado && !datos.idRefugioCustodia) return setError('Selecciona el refugio al que ya fue trasladado el animal');
     if (!hayFoto) {
       setError('Agregue al menos una foto. Los videos son opcionales.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -127,17 +106,10 @@ export default function Reportar() {
 
     const f = new FormData();
     f.append('tipo', tipo);
-    const { colores, idRefugioCustodia, notasCustodia, ...camposReporte } = datos;
+    const { colores, ...camposReporte } = datos;
     for (const [k, v] of Object.entries(camposReporte)) f.append(k, v);
     f.append('colores', colores.join(','));
-    if (tipo === 2) {
-      f.append('horaEvento', e.currentTarget.elements.horaEvento.value);
-      if (informaTraslado) {
-        f.append('situacionTraslado', 'realizado');
-        f.append('idRefugioCustodia', idRefugioCustodia);
-        f.append('notasCustodia', notasCustodia);
-      }
-    }
+    if (tipo === 2) f.append('horaEvento', e.currentTarget.elements.horaEvento.value);
     if (tipo !== 3) for (const [k, v] of Object.entries(ubicacion)) if (v !== null && v !== undefined) f.append(k, v);
     if (quitar.length) f.append('quitarArchivos', quitar.join(','));
     nuevos.forEach((n) => f.append('archivos', n.archivo));
@@ -153,18 +125,17 @@ export default function Reportar() {
     }
   };
 
+  if (params.get('traslado') === '1') return <Navigate replace to={id ? `/publicaciones/${id}` : '/mis-reportes?tipo=2'} />;
   if (!catalogos || cargando) return <Cargando />;
   const pestana = PESTANAS.find((p) => p.tipo === tipo) || PESTANAS[0];
-  const refugioSeleccionado = refugios?.find((r) => String(r.id) === datos.idRefugioCustodia)
-    || (String(custodia?.idRefugio) === datos.idRefugioCustodia ? { id: custodia.idRefugio, nombre: custodia.nombre } : null);
 
   return (
     <div className="figma-pagina figma-reportar">
-      <EncabezadoFigma titulo={informaTraslado && solicitaTraslado ? 'Informar traslado a un refugio' : id ? 'Editar publicación' : 'Reportar mascota'} volverA={id ? '/mis-reportes' : '/'}>
-        {informaTraslado && solicitaTraslado ? 'Registra el avistamiento e indica dónde entregaste al animal.' : 'Completa los datos para difundir el caso.'}
+      <EncabezadoFigma titulo={id ? 'Editar publicación' : 'Reportar mascota'} volverA={id ? '/mis-reportes' : '/'}>
+        Completa los datos para difundir el caso.
       </EncabezadoFigma>
 
-      {!id && !informaTraslado && (
+      {!id && (
         <div className="figma-selector-tipo" role="group" aria-label="Tipo de reporte">
           {PESTANAS.map((p) => (
             <button key={p.tipo} type="button" aria-pressed={tipo === p.tipo}
@@ -177,35 +148,11 @@ export default function Reportar() {
           ))}
         </div>
       )}
-      {!id && !informaTraslado && !puedeAdopcion && <p className="mt-2 text-xs text-suave">Las adopciones las publican refugios y fundaciones autorizados.</p>}
-      {tipo === 2 && !informaTraslado && <p className="mt-3 max-w-2xl text-sm text-suave">¿Viste un animal parecido a una mascota perdida? Registra el avistamiento. Si la comparación sugiere una coincidencia, avisaremos a su propietario. El reporte de desaparición seguirá activo hasta que su propietario confirme la recuperación.</p>}
+      {!id && !puedeAdopcion && <p className="mt-2 text-xs text-suave">Las adopciones las publican refugios y fundaciones autorizados.</p>}
+      {tipo === 2 && <p className="mt-3 max-w-2xl text-sm text-suave">¿Viste un animal parecido a una mascota perdida? Registra el avistamiento. Si la comparación sugiere una coincidencia, avisaremos a su propietario. El reporte de desaparición seguirá activo hasta que su propietario confirme la recuperación.</p>}
 
       <form onSubmit={enviar} className="figma-formulario-reporte">
         {error && <div className="figma-error-reporte"><Alerta>{error}</Alerta></div>}
-        {informaTraslado && <fieldset className="panel figma-traslado-reporte space-y-3 p-4 sm:p-5">
-          <legend className="px-2 font-bold text-lavanda">Entrega al refugio</legend>
-          <Alerta>{errorRefugios}</Alerta>
-          {!refugios && !errorRefugios && <p role="status" className="text-sm text-suave">Cargando refugios…</p>}
-          {refugios?.length === 0 && !custodia && <p className="text-sm text-suave">No hay refugios disponibles.</p>}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="etiqueta" htmlFor="custodia">Refugio que recibió al animal</label>
-              <select id="custodia" className="input" required disabled={Boolean(custodia?.confirmadaEn) || !refugios?.length} {...campo('idRefugioCustodia')}>
-                <option value="">Selecciona un refugio</option>
-                {custodia && !refugios?.some((r) => r.id === custodia.idRefugio) && <option value={custodia.idRefugio}>{custodia.nombre}</option>}
-                {refugios?.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
-              </select>
-              {refugioSeleccionado && <p className="mt-2 text-sm font-semibold text-lavanda">Refugio seleccionado: {refugioSeleccionado.nombre}</p>}
-              {custodia?.confirmadaEn && <p className="mt-1 text-xs text-suave">El refugio ya confirmó la recepción.</p>}
-              <Link to="/refugios" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm text-lavanda underline">Consultar refugios disponibles (nueva pestaña)</Link>
-            </div>
-            {datos.idRefugioCustodia && <div>
-              <label className="etiqueta" htmlFor="notas-custodia">Notas de entrega (opcional)</label>
-              <textarea id="notas-custodia" className="input" maxLength={500} rows={2} {...campo('notasCustodia')} />
-              <p className="text-xs text-suave">Solo las cuentas vinculadas al traslado pueden ver estas notas.</p>
-            </div>}
-          </div>
-        </fieldset>}
         <div className="panel figma-campos-reporte">
           <div className="figma-rasgos-reporte">
             <div className="figma-nombre-reporte">
@@ -294,7 +241,7 @@ export default function Reportar() {
 
           <div className="figma-acciones-reporte">
             <button type="button" className="btn btn-secundario" onClick={() => navegar(-1)}>Cancelar</button>
-            <button className="btn btn-primario px-8" disabled={enviando || (informaTraslado && !custodia && !refugios?.length)}>{enviando ? (catalogos.iaDisponible ? 'Validando fotos con IA…' : 'Publicando…') : id ? 'Guardar cambios' : informaTraslado ? 'Registrar traslado' : tipo === 2 ? 'Registrar avistamiento' : 'Publicar reporte'}</button>
+            <button className="btn btn-primario px-8" disabled={enviando}>{enviando ? (catalogos.iaDisponible ? 'Validando fotos con IA…' : 'Publicando…') : id ? 'Guardar cambios' : tipo === 2 ? 'Registrar avistamiento' : 'Publicar reporte'}</button>
           </div>
         </div>
 

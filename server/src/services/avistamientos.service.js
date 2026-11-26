@@ -49,12 +49,13 @@ async function guardarCustodia(consultar, id, idAutor, datos) {
   const notas = texto(datos.notasCustodia);
   if (notas.length > 500) throw new ErrorHttp(400, 'Las notas de entrega admiten hasta 500 caracteres');
   if (!idRefugio && notas) throw new ErrorHttp(400, 'Selecciona un refugio para registrar las notas de entrega');
-  const [actual] = await consultar('SELECT id_refugio, confirmada_en FROM custodia_refugio WHERE id_publicacion = $1 FOR UPDATE', [id]);
+  const [actual] = await consultar('SELECT id_refugio, confirmada_en, entregada_en FROM custodia_refugio WHERE id_publicacion = $1 FOR UPDATE', [id]);
   if (actual?.idRefugio === idRefugio) {
     await consultar('UPDATE custodia_refugio SET notas = $1 WHERE id_publicacion = $2', [notas || null, id]);
     return;
   }
   if (actual?.confirmadaEn) throw new ErrorHttp(400, 'La recepción ya fue confirmada por el refugio');
+  if (actual?.entregadaEn) throw new ErrorHttp(409, 'El avistamiento ya tiene una entrega registrada');
   if (actual) {
     const [conMensajes] = await consultar('SELECT 1 FROM mensaje_avistamiento WHERE id_publicacion = $1 LIMIT 1', [id]);
     if (conMensajes) throw new ErrorHttp(400, 'El traslado ya tiene mensajes de coordinación. Conserva el refugio asociado');

@@ -89,7 +89,9 @@ La exportación JSON incluye datos de la cuenta y referencias a los archivos pro
 
 ## Avistamientos y traslados a refugios
 
-En una publicación de mascota perdida, abre **¿La has visto?**. Usa **Registra un avistamiento** si solo viste al animal. Si ya lo entregaste, elige **Informar traslado a un refugio**, selecciona el refugio autorizado que lo recibió y añade notas de entrega si corresponde. Puedes informar de un traslado posterior desde el detalle de un avistamiento propio. Completa el reporte con fotos, fecha, hora aproximada opcional, ubicación y señas del animal.
+Desde **¿La has visto?** en una mascota perdida, puedes registrar un avistamiento o abrir **Informar traslado a un refugio** para ir a tus avistamientos. En el detalle del avistamiento original, selecciona **Ya fue trasladado a un refugio**. Indica el refugio receptor y la fecha y hora de entrega. La persona receptora, las observaciones y la foto de entrega son opcionales. La foto solo es visible para el autor y el refugio asignado. El avistamiento conserva sus fotos originales y coincidencias. Si no hay refugios disponibles, el avistamiento sigue publicado.
+
+En instalaciones existentes ejecuta `npm run db:migrate` en `server` para añadir los datos de entrega. Los traslados anteriores conservan su estado y muestran la fecha de registro disponible.
 
 Desde **Mi refugio → Gestionar traslado**, el refugio confirma la recepción, consulta los contactos autorizados de quien reportó el avistamiento y puede escribir por privado a los posibles propietarios. Recibe avisos de nuevas coincidencias, de la posible identificación y de la confirmación de recuperación de un reporte vinculado.
 
