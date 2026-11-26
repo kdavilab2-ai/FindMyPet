@@ -37,35 +37,22 @@ Docente: Merino Gavilanes Jonathan Eduardo
 - **IA:** Google Gemini (opcional) + algoritmo de puntaje por atributos
 - **Pruebas:** Jest + Supertest (48 pruebas automáticas)
 
-## Instalación local
+## Instalación y uso en Windows
 
-Requisitos: Node.js 20 o superior y PostgreSQL 14 o superior (o una base gratuita en [Neon](https://neon.tech)).
+1. Descarga o clona FindMyPet con tu cuenta autorizada de GitHub. Si descargaste un ZIP, extráelo antes de abrir los archivos.
+2. La primera vez, haz doble clic en **Instalar FindMyPet.bat**. Si aún falta la conexión local, indica los datos de tu PostgreSQL. Pulsa Enter para aceptar el servidor, puerto y usuario que aparecen entre corchetes si corresponden a tu instalación. Si PostgreSQL solicita contraseña, escríbela en la ventana del instalador. Permanece oculta.
+3. Cada vez que quieras usar la aplicación, haz doble clic en **Iniciar FindMyPet.bat**. Abre [FindMyPet](http://localhost:5173) en tu navegador y deja los servidores funcionando.
+4. Cuando termines, haz doble clic en **Detener FindMyPet.bat**. Cierra los servidores que abrió ese lanzador.
 
-```bash
-git clone https://github.com/kdavilab2-ai/FindMyPet.git
-cd findmypet
+Necesitas Node.js LTS 22.12 o posterior y PostgreSQL 14 o posterior. También se admite Node.js 20 desde la versión 20.19. Si tu copia ya está configurada con el PostgreSQL portátil de FindMyPet, el lanzador lo inicia cuando hace falta. Para una instalación como servicio de Windows, comprueba en **Servicios** que PostgreSQL esté iniciado. El usuario de PostgreSQL necesita acceso a las bases y permiso para crearlas si todavía faltan.
 
-# 1. Backend
-cd server
-cp .env.example .env          # editar DATABASE_URL, TEST_DATABASE_URL y JWT_SECRET
-npm install
-npm run db:migrate            # crea tablas y catálogos
-npm run seed                  # datos de demostración
-npm run dev                   # http://localhost:4000/api/salud
-
-# 2. Frontend (otra terminal)
-cd client
-npm install
-npm run dev                   # http://localhost:5173
-```
-
-Crear las bases en PostgreSQL local: `CREATE DATABASE findmypet;` y `CREATE DATABASE findmypet_test;`
+El instalador completa los valores ausentes en `server/.env`, conserva los valores existentes, genera la clave de sesión y prepara las tablas y catálogos iniciales. La base de la aplicación y la de pruebas son distintas. Si instalas por primera vez y la base está vacía, regístrate desde la pantalla de inicio de sesión. Ejecuta el instalador de nuevo tras actualizar el esquema o las dependencias.
 
 Al abrir FindMyPet sin una sesión iniciada, verás **Iniciar sesión**. Al ingresar se abre **Inicio**, y al cerrar sesión vuelves a **Iniciar sesión**.
 
 ### Cuentas de demostración local (contraseña `Clave1234`)
 
-Usa estas cuentas ficticias solo en una base desechable. `npm run seed` borra usuarios y publicaciones de la base configurada.
+Estas cuentas ficticias están disponibles en bases que el equipo ya preparó para demostración.
 
 | Correo | Rol |
 | --- | --- |
@@ -77,19 +64,21 @@ Usa estas cuentas ficticias solo en una base desechable. `npm run seed` borra us
 
 ## Pruebas
 
+El instalador de Windows prepara una base separada. Jest reinicializa el esquema de `TEST_DATABASE_URL`. Usa este comando únicamente con una base de pruebas desechable.
+
 ```bash
 cd server && npm test
 ```
 
 ## Seguridad y privacidad
 
-Abre **Mi perfil → Seguridad y privacidad**. Después de actualizar, ejecuta `npm run db:migrate` en `server` y vuelve a iniciar sesión. Los JWT anteriores a la migración deberán renovarse mediante un nuevo inicio de sesión. Los avisos críticos se entregan en la campana de FindMyPet.
+Abre **Mi perfil → Seguridad y privacidad**. Después de actualizar el esquema, vuelve a iniciar sesión. Los JWT anteriores a la migración deberán renovarse mediante un nuevo inicio de sesión. Los avisos críticos se entregan en la campana de FindMyPet.
 
 La exportación JSON incluye datos de la cuenta y referencias a los archivos propios. Las solicitudes de desactivación o eliminación llegan a **Administración → Solicitudes de cuenta**, donde se revisan. Para automatizar su ejecución hace falta definir qué sucede con reportes y adopciones pendientes, cómo se reactiva la cuenta y qué datos se deben conservar o eliminar. La verificación en dos pasos queda pendiente hasta configurar el almacenamiento protegido del segundo factor y el procedimiento de recuperación de acceso.
 
 ## Avistamientos y traslados a refugios
 
-Cada ficha de mascota perdida tiene una sección **Avistamientos**. Usa **Publicar avistamiento** desde esa ficha para añadir fotos y observaciones. El avistamiento también conserva su propia página. Las coincidencias sugeridas y los reportes publicados por separado siguen su flujo habitual. Si actualizas una instalación existente, ejecuta `npm run db:migrate` en `server` para añadir el vínculo entre publicaciones.
+Cada ficha de mascota perdida tiene una sección **Avistamientos**. Usa **Publicar avistamiento** desde esa ficha para añadir fotos y observaciones. El avistamiento también conserva su propia página. Las coincidencias sugeridas y los reportes publicados por separado siguen su flujo habitual.
 
 En una base local con las fichas de demostración, `npm run seed:avistamientos` desde `server` añade ejemplos ficticios a Rocky y Michi. Este comando conserva los reportes existentes.
 
