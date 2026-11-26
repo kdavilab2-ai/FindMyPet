@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { formatoFechaHora } from './Comunes';
@@ -109,7 +109,6 @@ function MenuUsuario() {
           <button className={opcion} onClick={() => ir('/perfil')}>👤 Mi perfil y alertas</button>
           <button className={opcion} onClick={() => ir('/perfil/seguridad')}>🛡️ Seguridad y privacidad</button>
           {esRefugio && <button className={opcion} onClick={() => ir('/mi-refugio')}>🏠 Mi refugio</button>}
-          <button className={opcion} onClick={() => ir('/refugios')}>💜 Refugios</button>
           {esAdmin && <button className={opcion} onClick={() => ir('/admin')}>🛡️ Administración</button>}
           <hr className="my-1 border-borde" />
           <button className={`${opcion} text-perdida`} onClick={() => { salir(); ir('/login', { replace: true }); }}>Cerrar sesión</button>
@@ -130,7 +129,8 @@ export default function Navbar({ cabeceraPropia = false }) {
           <NavLink to="/perdidas" className={claseEnlace}>Perdidas</NavLink>
           <NavLink to="/recuperados" className={claseEnlace}>Recuperados</NavLink>
           <NavLink to="/adopcion" className={claseEnlace}>Adopción</NavLink>
-          {usuario && <NavLink to="/mis-reportes" className={claseEnlace}>Mis reportes</NavLink>}
+          <NavLink to="/refugios" className={claseEnlace}>Refugios y fundaciones</NavLink>
+          {usuario && <NavLink to="/mis-reportes" className={(estado) => `${claseEnlace(estado)} figma-mis-reportes-nav`}>Mis reportes</NavLink>}
         </div>
         <div className="figma-acciones-nav">
           {usuario ? (
@@ -153,11 +153,10 @@ export default function Navbar({ cabeceraPropia = false }) {
 
 // Barra inferior de la versión móvil (Figura 3 del plan)
 export function NavInferior() {
-  const { pathname } = useLocation();
   const item = (ruta, icono, texto) => (
-    <Link to={ruta} aria-current={pathname === ruta ? 'page' : undefined} className="figma-item-inferior">
+    <NavLink to={ruta} end={ruta === '/'} className="figma-item-inferior">
       <span><IconoFigma nombre={icono} /></span>{texto}
-    </Link>
+    </NavLink>
   );
   return (
     <nav className="figma-nav-inferior" aria-label="Navegación móvil">
@@ -168,6 +167,7 @@ export function NavInferior() {
       </Link>
       {item('/recuperados', 'pataMenu', 'Recuperados')}
       {item('/adopcion', 'adopcion', 'Adopción')}
+      {item('/refugios', 'inicio', 'Refugios')}
     </nav>
   );
 }

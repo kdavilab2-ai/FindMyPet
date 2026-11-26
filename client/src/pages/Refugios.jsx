@@ -5,6 +5,24 @@ import { useAuth } from '../context/AuthContext';
 import TarjetaMascota from '../components/TarjetaMascota';
 import { Alerta, Cargando, Estrellas, Vacio, formatoFecha, textoUbicacion } from '../components/Comunes';
 
+const plataformas = [
+  { nombre: 'Patreon', url: 'https://www.patreon.com/' },
+  { nombre: 'GoFundMe', url: 'https://www.gofundme.com/' },
+];
+
+function ApoyoExterno({ opciones = plataformas, className }) {
+  const nombres = opciones.map(({ nombre }) => nombre).join(' o ');
+  return (
+    <section className={className}>
+      <h2 className="text-xl">Apoyo en plataformas externas</h2>
+      <p className="mt-1 text-sm text-suave">Busca iniciativas de refugios en {nombres}.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {opciones.map(({ nombre, url }) => <a key={url} className="btn btn-secundario" href={url}>{nombre}</a>)}
+      </div>
+    </section>
+  );
+}
+
 export function ListaRefugios() {
   const [refugios, setRefugios] = useState(null);
   const [error, setError] = useState('');
@@ -32,14 +50,7 @@ export function ListaRefugios() {
         </div>
       ))}
 
-      <section className="mt-8">
-        <h2 className="text-xl">Apoyo en plataformas externas</h2>
-        <p className="mt-1 text-sm text-suave">Busca iniciativas de refugios en Patreon o GoFundMe.</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <a className="btn btn-secundario" href="https://www.patreon.com/">Patreon</a>
-          <a className="btn btn-secundario" href="https://www.gofundme.com/">GoFundMe</a>
-        </div>
-      </section>
+      <ApoyoExterno className="mt-8" />
     </div>
   );
 }
@@ -89,6 +100,8 @@ export function DetalleRefugio() {
         {adopciones.length === 0 ? <p className="text-sm text-suave">No hay animales en adopción en este momento.</p>
           : <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{adopciones.map((p) => <TarjetaMascota key={p.id} p={p} />)}</div>}
       </section>
+
+      {r.autorizado && <ApoyoExterno opciones={[plataformas[(r.id - 1) % plataformas.length]]} />}
 
       <section className="grid gap-5 lg:grid-cols-2">
         <div>
