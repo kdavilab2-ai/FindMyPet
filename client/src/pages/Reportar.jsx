@@ -13,6 +13,7 @@ const hoy = () => {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 };
 const MAX = 5;
+const ESPECIE_OTRO = '5';
 const TIPOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'];
 
 const PESTANAS = [
@@ -38,11 +39,12 @@ export default function Reportar() {
   });
   const tipo = !id && solicitaTraslado ? 2 : tipoElegido;
   const [datos, setDatos] = useState({
-    nombreAnimal: '', idEspecie: !id && solicitaTraslado ? '' : '1', idRaza: '', idTamano: '', colores: [], descripcion: '', fechaEvento: hoy(),
+    nombreAnimal: '', idEspecie: '1', idRaza: '', idTamano: '', colores: [], descripcion: '', fechaEvento: hoy(),
     estadoSalud: '', telefono: '', whatsapp: usuario?.telefono || '', correoContacto: '',
     idRefugioCustodia: '', notasCustodia: '',
   });
   const [horaEvento, setHoraEvento] = useState('');
+  const [senasHallazgo, setSenasHallazgo] = useState('');
   const [ubicacion, setUbicacion] = useState(ubicacionDesdeApi(null));
   const [existentes, setExistentes] = useState([]);
   const [quitar, setQuitar] = useState([]);
@@ -73,7 +75,7 @@ export default function Reportar() {
     setEspecieReferencia('');
     api.get(`/publicaciones/${encodeURIComponent(referencia)}`)
       .then((p) => { if (vigente && p.idTipo === 1) setEspecieReferencia(String(p.idEspecie)); })
-      .catch(() => { /* El formulario permite indicar el tipo de animal si la ficha no está disponible. */ })
+      .catch(() => { /* Si falta la ficha, se usa la categoría Otro. */ })
       .finally(() => { if (vigente) setCargando(false); });
     return () => { vigente = false; };
   }, [referencia]);
@@ -134,6 +136,9 @@ export default function Reportar() {
     if (datos.descripcion.trim().length < 10) {
       return setError(formularioTraslado ? 'Describe el estado en que encontraste al animal (al menos 10 caracteres)' : 'La descripción debe tener al menos 10 caracteres');
     }
+    const senas = formularioTraslado ? senasHallazgo.trim() : '';
+    const descripcion = senas ? `${datos.descripcion.trim()}\n\nSeñas particulares: ${senas}` : datos.descripcion;
+    if (descripcion.length > 2000) return setError('El estado y las señas particulares admiten hasta 2000 caracteres en total');
     const whatsapp = datos.whatsapp.replace(/[ -]/g, '');
     if (!datos.telefono && !whatsapp && !datos.correoContacto) return setError('Ingrese al menos un dato de contacto');
     if (datos.telefono && !/^0\d{9}$/.test(datos.telefono)) return setError('El teléfono debe tener 10 dígitos y empezar con 0');
@@ -144,9 +149,9 @@ export default function Reportar() {
 
     const f = new FormData();
     f.append('tipo', tipo);
-    const { colores, idRefugioCustodia, notasCustodia, ...camposReporte } = datos;
+    const { colores, idRefugioCustodia, notasCustodia, ...camposReporte } = { ...datos, descripcion };
     for (const [k, v] of Object.entries(camposReporte)) f.append(k, v);
-    if (formularioTraslado && !id && especieReferencia) f.set('idEspecie', especieReferencia);
+    if (formularioTraslado && !id) f.set('idEspecie', especieReferencia || ESPECIE_OTRO);
     f.append('colores', colores.join(','));
     if (tipo === 2) {
       f.append('horaEvento', e.currentTarget.elements.horaEvento.value);
@@ -226,16 +231,14 @@ export default function Reportar() {
           </div>
         </fieldset>}
         <div className="panel figma-campos-reporte">
-          {formularioTraslado && <h2 className="text-base text-lavanda">Sobre el hallazgo</h2>}
-          {formularioTraslado && !id && !especieReferencia && (
+          {formularioTraslado && <>
+            <h2 className="text-base text-lavanda">Sobre el hallazgo</h2>
             <div>
-              <label className="etiqueta" htmlFor="tipo-animal-traslado">¿Qué tipo de animal encontraste?</label>
-              <select id="tipo-animal-traslado" className="input" required {...campo('idEspecie')}>
-                <option value="">Selecciona un tipo de animal</option>
-                {catalogos.especies.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-              </select>
+              <label className="etiqueta" htmlFor="descripcion">¿En qué estado lo encontraste?</label>
+              <textarea id="descripcion" required rows={3} maxLength={2000} className="input"
+                placeholder="Ej. Estaba asustado y cojeaba." {...campo('descripcion')} />
             </div>
-          )}
+          </>}
           {!formularioTraslado && <div className="figma-rasgos-reporte">
             <div className="figma-nombre-reporte">
               <label className="etiqueta" htmlFor="nombre">Nombre de la mascota{tipo === 2 && ' (si lo sabe)'}</label>
@@ -307,12 +310,19 @@ export default function Reportar() {
             </>
           )}
 
-          <div>
-            <label className="etiqueta" htmlFor="descripcion">{formularioTraslado ? '¿En qué estado lo encontraste?' : 'Descripción y señas particulares'}</label>
-            <textarea id="descripcion" required rows={4} maxLength={2000} className="input"
-              placeholder={formularioTraslado ? 'Describe su condición y comportamiento. Ej. Estaba asustado, cojeaba y llevaba collar.' : 'Collar rojo, mancha blanca en el pecho…'} {...campo('descripcion')} />
-            {formularioTraslado && <p className="mt-1 text-xs text-suave">Esta descripción aparecerá en el avistamiento. Usa las notas de entrega para los detalles de coordinación.</p>}
-          </div>
+          {formularioTraslado ? (
+            <div>
+              <label className="etiqueta" htmlFor="senas-hallazgo">¿Qué señas particulares observaste? (opcional)</label>
+              <textarea id="senas-hallazgo" rows={2} maxLength={500} className="input"
+                placeholder="Ej. Collar rojo o una mancha blanca en el pecho." value={senasHallazgo} onChange={(e) => setSenasHallazgo(e.target.value)} />
+              <p className="mt-1 text-xs text-suave">El estado y las señas se muestran en el avistamiento. Usa las notas de entrega para los detalles de coordinación.</p>
+            </div>
+          ) : (
+            <div>
+              <label className="etiqueta" htmlFor="descripcion">Descripción y señas particulares</label>
+              <textarea id="descripcion" required rows={4} maxLength={2000} className="input" placeholder="Collar rojo, mancha blanca en el pecho…" {...campo('descripcion')} />
+            </div>
+          )}
 
           <fieldset>
             <legend className="etiqueta">Contacto (al menos uno; solo lo verán usuarios registrados)</legend>
