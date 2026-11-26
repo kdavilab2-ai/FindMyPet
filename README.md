@@ -54,14 +54,17 @@ Al abrir FindMyPet sin una sesión iniciada, verás **Iniciar sesión**. Al ingr
 
 Después de instalar FindMyPet, haz doble clic en **Abrir demostracion FindMyPet.bat**. Abre [la demostración](http://localhost:5174) con una base PostgreSQL separada y un rótulo visible. El primer inicio prepara el contenido. Los siguientes conservan lo que hagas durante el ensayo y evitan duplicar los ejemplos. Usa **Detener FindMyPet.bat** para cerrar los servidores.
 
-Abre `.runtime/windows/.env.demo-clave` con el Bloc de notas para leer la clave generada para las cuentas ficticias. Usa la demostración local para estas cuentas. Los contactos están bajo el dominio reservado `.test` y las coincidencias se calculan por atributos sin enviar fotos a servicios externos.
+Las cinco cuentas ficticias de esta tabla usan la contraseña de demostración **`Clave1234`**. Los contactos están bajo el dominio reservado `.test` y las coincidencias se calculan por atributos sin enviar fotos a servicios externos.
 
 | Cuenta | Recorrido sugerido |
 | --- | --- |
-| `sofia@presentacion.findmypet.test` | Abre **Perdidas** y busca a Bruno, Lima o Michi. En sus fichas, baja a **Avistamientos** para ver fotos y observaciones. Abre la campana o **Coincidencias IA** para revisar las sugerencias de tu cuenta. |
-| `mateo@presentacion.findmypet.test` | Consulta las alertas de proximidad en la campana y los hallazgos propios en **Mis reportes**. Explora Kira, Milo y Nina en **Recuperados**. |
-| `patitas@presentacion.findmypet.test` | Abre **Mi refugio → Gestionar traslado** para ver el aviso sobre el avistamiento de Oliva. La recepción queda pendiente para que puedas mostrar cómo la confirma el refugio. |
-| `admin@presentacion.findmypet.test` | Abre **Administración** y localiza la solicitud de autorización de Red de Rescate La Ribera. |
+| `ana@findmypet.test` | Abre **Perdidas** y busca a Bruno, Lima o Michi. En sus fichas, baja a **Avistamientos** para ver fotos y observaciones. Abre la campana o **Coincidencias IA** para revisar las sugerencias de tu cuenta. |
+| `luis@findmypet.test` | Consulta las alertas de proximidad en la campana y los hallazgos propios en **Mis reportes**. Explora Kira, Milo y Nina en **Recuperados**. |
+| `huellitas@findmypet.test` | Abre **Mi refugio** para consultar tus publicaciones de adopción. |
+| `patitas@findmypet.test` | Abre **Mi refugio → Gestionar traslado** para ver el aviso sobre el avistamiento de Oliva. La recepción queda pendiente para que puedas mostrar cómo la confirma el refugio. |
+| `admin@findmypet.test` | Abre **Administración** y localiza la solicitud de autorización de Red de Rescate La Ribera. |
+
+Las demás cuentas ficticias de la presentación siguen usando la clave local generada en `.runtime/windows/.env.demo-clave`.
 
 Desde **Adopción** puedes filtrar perros, gatos, aves, conejos y otros animales. Abre **Refugios y fundaciones** para consultar el directorio, las reseñas y los enlaces externos de apoyo.
 

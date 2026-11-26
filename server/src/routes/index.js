@@ -19,15 +19,17 @@ const multimedia = require('../controllers/multimedia.controller');
 
 const router = Router();
 
-// Límite de intentos para evitar ataques de fuerza bruta en el inicio de sesión
-const limiteAuth = rateLimit({
+// El inicio de sesión tiene su propio cupo. Solo los intentos fallidos lo consumen.
+const opcionesLimiteAuth = {
   windowMs: 15 * 60 * 1000,
   limit: 30,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test',
   message: { error: 'Demasiados intentos. Espere unos minutos e intente de nuevo' },
-});
+};
+const limiteAuth = rateLimit(opcionesLimiteAuth);
+const limiteLogin = rateLimit({ ...opcionesLimiteAuth, skipSuccessfulRequests: true });
 
 router.get('/salud', (req, res) => res.json({ ok: true }));
 router.get('/catalogos', a(catalogos.listar));
@@ -39,7 +41,7 @@ router.use('/auth', (req, res, next) => {
   next();
 });
 router.post('/auth/registro', limiteAuth, a(auth.registro));
-router.post('/auth/login', limiteAuth, a(auth.login));
+router.post('/auth/login', limiteLogin, a(auth.login));
 router.post('/auth/olvide', limiteAuth, a(auth.olvideContrasena));
 router.post('/auth/restablecer', limiteAuth, a(auth.restablecerContrasena));
 router.post('/auth/renovar', verificarToken, a(auth.renovar));

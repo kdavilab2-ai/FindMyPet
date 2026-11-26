@@ -71,6 +71,29 @@ describe('RF-02, RNF-19: inicio de sesión', () => {
     expect((await request(app).get('/api/auth/yo')).status).toBe(401);
     expect((await request(app).get('/api/auth/yo').set(conToken('token-falso'))).status).toBe(401);
   });
+
+  test('limita los intentos fallidos sin contar accesos correctos ni bloquear la recuperación', async () => {
+    const entorno = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
+    try {
+      const desde = (ip, correo, contrasena) => request(app).post('/api/auth/login')
+        .set('X-Forwarded-For', ip).send({ correo, contrasena });
+      for (let intento = 0; intento < 31; intento += 1) {
+        expect((await desde('192.0.2.10', ciudadano.correo, ciudadano.contrasena)).status).toBe(200);
+      }
+      for (let intento = 0; intento < 30; intento += 1) {
+        expect((await desde('192.0.2.11', 'inexistente@findmypet.test', 'EjemploPrueba')).status).toBe(401);
+      }
+      const limite = await desde('192.0.2.11', ciudadano.correo, ciudadano.contrasena);
+      expect(limite.status).toBe(429);
+      expect(Number(limite.headers['retry-after'])).toBeGreaterThan(0);
+      const recuperacion = await request(app).post('/api/auth/olvide').set('X-Forwarded-For', '192.0.2.11')
+        .send({ correo: 'inexistente@findmypet.test' });
+      expect(recuperacion.status).toBe(404);
+    } finally {
+      process.env.NODE_ENV = entorno;
+    }
+  }, 15_000);
 });
 
 describe('RF-18: recuperación de contraseña', () => {

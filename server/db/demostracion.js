@@ -10,6 +10,10 @@ const baseDemo = 'findmypet_demostracion';
 const firma = 'findmypet-presentacion-unemi';
 const fotosExistentes = { michi: 'michi.webp', 'av-michi': 'michi-avistamiento.webp' };
 const correoDemo = (clave) => `${clave}@presentacion.findmypet.test`;
+const cuentasClasicas = [
+  ['admin', 'admin'], ['sofia', 'ana', 'Ana', 'Torres'], ['mateo', 'luis', 'Luis', 'Mendoza'],
+  ['huellitas', 'huellitas'], ['patitas', 'patitas'],
+];
 const esLocal = (url) => ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
   && ['postgres:', 'postgresql:'].includes(url.protocol);
 
@@ -127,6 +131,33 @@ async function inicializar(consultar, hash, fotos) {
   return perdidas.filter((p) => !p.recuperada).map((p) => idsPublicaciones[p.clave]);
 }
 
+async function restaurarAccesosClasicos({ consulta, ejecutar }) {
+  await ejecutar('ALTER TABLE demo_lote ADD COLUMN IF NOT EXISTS accesos_clasicos BOOLEAN NOT NULL DEFAULT FALSE');
+  const [lote] = await consulta('SELECT accesos_clasicos FROM demo_lote WHERE firma = $1', [firma]);
+  if (lote.accesosClasicos) return;
+
+  // Contraseña pública solicitada para estas cinco cuentas de la base de presentación aislada.
+  const hash = await bcrypt.hash('Clave1234', 10);
+  for (const [anterior, local, nombres, apellidos] of cuentasClasicas) {
+    const origen = correoDemo(anterior);
+    const destino = `${local}@findmypet.test`;
+    const [cuenta] = await consulta('SELECT id_usuario FROM usuario WHERE correo = $1', [origen]);
+    if (!cuenta) continue;
+    if ((await consulta('SELECT 1 FROM usuario WHERE correo = $1', [destino])).length) {
+      throw new Error(`La demostración ya tiene otra cuenta con ${destino}. Se conservaron ambas cuentas.`);
+    }
+    const { idUsuario } = cuenta;
+    await consulta(`UPDATE usuario SET correo = $1, contrasena_hash = $2, nombres = COALESCE($4, nombres),
+      apellidos = COALESCE($5, apellidos) WHERE id_usuario = $3`, [destino, hash, idUsuario, nombres, apellidos]);
+    await consulta(`UPDATE contacto_publicacion cp SET valor = $1 FROM publicacion p
+      WHERE cp.id_publicacion = p.id_publicacion AND p.id_usuario = $2 AND cp.id_tipo_contacto = $3 AND cp.valor = $4`,
+    [destino, idUsuario, TIPO_CONTACTO.CORREO, origen]);
+    await consulta('DELETE FROM sesion_usuario WHERE id_usuario = $1', [idUsuario]);
+    await consulta('DELETE FROM token_usuario WHERE id_usuario = $1', [idUsuario]);
+  }
+  await consulta('UPDATE demo_lote SET accesos_clasicos = TRUE WHERE firma = $1', [firma]);
+}
+
 async function poblar(archivoClave) {
   const url = new URL(process.env.DATABASE_URL);
   if (!esLocal(url) || url.pathname !== `/${baseDemo}`) throw new Error('La carga de demostración solo funciona en su base PostgreSQL local dedicada.');
@@ -162,6 +193,7 @@ async function poblar(archivoClave) {
     } else {
       await candado.query(esquema);
     }
+    if (!lote.accesosClasicos) await db.transaccion(restaurarAccesosClasicos);
     if (!lote.terminada) {
       for (const id of lote.perdidas) {
         const pendiente = await db.una('SELECT 1 FROM publicacion WHERE id_publicacion = $1 AND id_estado = $2', [id, ESTADO.DESAPARECIDA_PENDIENTE]);
