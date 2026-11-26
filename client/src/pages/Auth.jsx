@@ -175,7 +175,7 @@ export function Registro() {
         <p className="text-xs text-suave">Mínimo 8 caracteres, con letras y números.</p>
         {esRefugio && (
           <div className="space-y-3 rounded-xl border border-borde p-4">
-            <p className="text-sm text-suave">Un administrador revisará tu refugio antes de que puedas publicar adopciones y pedir donaciones.</p>
+            <p className="text-sm text-suave">Un administrador revisará tu refugio antes de que puedas publicar adopciones.</p>
             <div><label className="etiqueta" htmlFor="nombreRefugio">Nombre del refugio o fundación</label><input id="nombreRefugio" required maxLength={100} className="input" {...campo('nombreRefugio')} /></div>
             <SelectorUbicacion valor={ubicacion} alCambiar={setUbicacion} />
           </div>

@@ -136,12 +136,7 @@ async function main() {
     foto: fotos.luna, horas: 480,
   });
 
-  // Donaciones y valoraciones
-  const sol = await una(
-    "INSERT INTO solicitud_donacion (id_refugio, titulo, descripcion) VALUES ($1, 'Alimento para cachorros', 'Necesitamos 3 sacos de balanceado para cachorros y mantas para el invierno.') RETURNING id_solicitud",
-    [huellitas.idRefugio],
-  );
-  await consulta("INSERT INTO donacion (id_usuario, id_refugio, id_solicitud, detalle) VALUES ($1, $2, $3, '1 saco de balanceado de 15 kg')", [luis, huellitas.idRefugio, sol.idSolicitud]);
+  // Valoración de un refugio
   await consulta("INSERT INTO valoracion (id_refugio, id_usuario, calificacion, comentario) VALUES ($1, $2, 5, 'Muy responsables, adoptamos a nuestro gato con ellos.')", [huellitas.idRefugio, ana]);
 
   // Análisis de coincidencias inicial (Rocky vs el perro encontrado en Las Piñas)

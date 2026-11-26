@@ -27,7 +27,7 @@ Docente: Merino Gavilanes Jonathan Eduardo
 | Búsqueda y filtros por tipo, especie, tamaño, color, estado, provincia, cantón y sector | RF-16 |
 | Moderación, control de cuentas, autorización de refugios y auditoría | RF-17, RNF-22 |
 | Cartel de búsqueda en PDF | RF-23 |
-| Valoraciones de refugios y solicitudes de donaciones o insumos | RF-24, RF-25 |
+| Valoraciones de refugios y enlaces de apoyo externo a Patreon y GoFundMe | RF-24, RF-25 |
 | Alertas de mascotas perdidas cerca del usuario | RF-26 |
 
 ## Tecnologías

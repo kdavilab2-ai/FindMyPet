@@ -109,7 +109,7 @@ function MenuUsuario() {
           <button className={opcion} onClick={() => ir('/perfil')}>👤 Mi perfil y alertas</button>
           <button className={opcion} onClick={() => ir('/perfil/seguridad')}>🛡️ Seguridad y privacidad</button>
           {esRefugio && <button className={opcion} onClick={() => ir('/mi-refugio')}>🏠 Mi refugio</button>}
-          <button className={opcion} onClick={() => ir('/refugios')}>💜 Refugios y donaciones</button>
+          <button className={opcion} onClick={() => ir('/refugios')}>💜 Refugios</button>
           {esAdmin && <button className={opcion} onClick={() => ir('/admin')}>🛡️ Administración</button>}
           <hr className="my-1 border-borde" />
           <button className={`${opcion} text-perdida`} onClick={() => { salir(); ir('/login', { replace: true }); }}>Cerrar sesión</button>

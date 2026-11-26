@@ -65,7 +65,7 @@ async function cambiarEstadoCuenta(req, res) {
   res.json({ id, idEstado });
 }
 
-// Autorizar refugios para publicar adopciones y pedir donaciones
+// Autorizar refugios para publicar adopciones
 async function autorizarRefugio(req, res) {
   const id = entero(req.params.id);
   const autorizado = req.body.autorizado === true;
@@ -78,7 +78,7 @@ async function autorizarRefugio(req, res) {
       [req.usuario.id, rf.idUsuario, u.idEstadoCuenta, autorizado ? 'Refugio autorizado' : 'Autorización de refugio retirada'],
     );
     await notificar(tx.consulta, rf.idUsuario, null, TIPO_NOTIFICACION.CUENTA,
-      autorizado ? `¡${rf.nombre} fue autorizado! Ya puede publicar adopciones y solicitudes de donación` : `Se retiró la autorización de ${rf.nombre}`);
+      autorizado ? `¡${rf.nombre} fue autorizado! Ya puede publicar adopciones` : `Se retiró la autorización de ${rf.nombre}`);
   });
   res.json({ id, autorizado });
 }

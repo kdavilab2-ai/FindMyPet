@@ -2,14 +2,12 @@ const { consulta, una } = require('../lib/db');
 const { ErrorHttp } = require('../middlewares/errores');
 const { texto, entero } = require('../lib/validar');
 const { JSON_UBICACION, JOIN_UBICACION } = require('../lib/ubicacion');
-const { ESTADO_SOLICITUD } = require('../lib/constantes');
 
 const SELECT_REFUGIO = `
   SELECT rf.id_refugio AS id, rf.nombre, rf.autorizado, ${JSON_UBICACION} AS ubicacion,
          COALESCE((SELECT ROUND(AVG(v.calificacion), 1)::float FROM valoracion v WHERE v.id_refugio = rf.id_refugio), 0) AS promedio,
          (SELECT COUNT(*)::int FROM valoracion v WHERE v.id_refugio = rf.id_refugio) AS valoraciones,
-         (SELECT COUNT(*)::int FROM publicacion p WHERE p.id_usuario = rf.id_usuario AND p.id_tipo = 3 AND p.id_estado = 5) AS en_adopcion,
-         (SELECT COUNT(*)::int FROM solicitud_donacion sd WHERE sd.id_refugio = rf.id_refugio AND sd.id_estado_solicitud = 1) AS solicitudes_abiertas
+         (SELECT COUNT(*)::int FROM publicacion p WHERE p.id_usuario = rf.id_usuario AND p.id_tipo = 3 AND p.id_estado = 5) AS en_adopcion
   FROM refugio rf
   JOIN usuario u ON u.id_usuario = rf.id_usuario AND u.id_estado_cuenta = 1
   ${JOIN_UBICACION('rf.id_ubicacion')}`;
@@ -28,13 +26,6 @@ async function obtener(req, res) {
      FROM valoracion v JOIN usuario u ON u.id_usuario = v.id_usuario
      WHERE v.id_refugio = $1 ORDER BY v.fecha DESC`,
     [id, req.usuario?.id || 0],
-  );
-  refugio.solicitudes = await consulta(
-    `SELECT sd.id_solicitud AS id, sd.titulo, sd.descripcion, sd.fecha, es.nombre AS estado,
-            (SELECT COUNT(*)::int FROM donacion d WHERE d.id_solicitud = sd.id_solicitud) AS aportes
-     FROM solicitud_donacion sd JOIN estado_solicitud es ON es.id_estado_solicitud = sd.id_estado_solicitud
-     WHERE sd.id_refugio = $1 AND sd.id_estado_solicitud = $2 ORDER BY sd.fecha DESC`,
-    [id, ESTADO_SOLICITUD.ABIERTA],
   );
   res.json(refugio);
 }

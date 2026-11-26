@@ -101,24 +101,42 @@ describe('RF-24: valoraciones de refugios', () => {
   });
 });
 
-describe('RF-25: donaciones o insumos', () => {
+describe('RF-25: apoyo económico fuera de FindMyPet', () => {
+  const titulo = 'Solicitud histórica de prueba';
+  let idRefugio;
   let idSolicitud;
-  test('el refugio publica una solicitud y los usuarios registran aportes', async () => {
-    expect((await request(app).post('/api/donaciones').set(conToken(ana.token)).send({ titulo: 'Comida', descripcion: 'Necesitamos comida' })).status).toBe(403);
-    const s = await request(app).post('/api/donaciones').set(conToken(refugio.token)).send({ titulo: 'Alimento para cachorros', descripcion: 'Tres sacos de balanceado' });
-    expect(s.status).toBe(201);
-    idSolicitud = s.body.id;
-    expect((await request(app).post(`/api/donaciones/${idSolicitud}/aportes`).set(conToken(ana.token)).send({})).status).toBe(400);
-    expect((await request(app).post(`/api/donaciones/${idSolicitud}/aportes`).set(conToken(ana.token)).send({ monto: 20 })).status).toBe(201);
-    expect((await request(app).post(`/api/donaciones/${idSolicitud}/aportes`).set(conToken(luis.token)).send({ detalle: '1 saco de 15 kg' })).status).toBe(201);
-    const mias = await request(app).get('/api/donaciones/mias').set(conToken(refugio.token));
-    expect(mias.body[0]).toMatchObject({ aportes: 2, totalMonto: 20 });
-    expect(mias.body[0].detalleAportes.map((a) => a.donante).sort()).toEqual(['Ana Prueba', 'Luis Prueba']);
+
+  beforeAll(async () => {
+    idRefugio = refugio.usuario.refugio.id;
+    const solicitud = await db.una(
+      'INSERT INTO solicitud_donacion (id_refugio, titulo, descripcion) VALUES ($1, $2, $3) RETURNING id_solicitud',
+      [idRefugio, titulo, 'Registro de prueba anterior al retiro de las solicitudes'],
+    );
+    idSolicitud = solicitud.idSolicitud;
   });
 
-  test('al cerrarla ya no recibe aportes ni aparece en la lista pública', async () => {
-    await request(app).patch(`/api/donaciones/${idSolicitud}`).set(conToken(refugio.token)).send({ idEstado: 2 });
-    expect((await request(app).post(`/api/donaciones/${idSolicitud}/aportes`).set(conToken(ana.token)).send({ monto: 5 })).status).toBe(400);
-    expect((await request(app).get('/api/donaciones')).body).toHaveLength(0);
+  test('las rutas internas de donaciones y aportes ya no están disponibles', async () => {
+    expect((await request(app).get('/api/donaciones')).status).toBe(404);
+    expect((await request(app).get('/api/donaciones/mias').set(conToken(refugio.token))).status).toBe(404);
+    expect((await request(app).post('/api/donaciones').set(conToken(refugio.token))
+      .send({ titulo, descripcion: 'Descripción de prueba' })).status).toBe(404);
+    expect((await request(app).patch(`/api/donaciones/${idSolicitud}`).set(conToken(refugio.token))
+      .send({ idEstado: 2 })).status).toBe(404);
+    expect((await request(app).post(`/api/donaciones/${idSolicitud}/aportes`).set(conToken(ana.token))
+      .send({ monto: 5 })).status).toBe(404);
+  });
+
+  test('el directorio y el perfil mantienen el refugio sin exponer sus solicitudes históricas', async () => {
+    const lista = await request(app).get('/api/refugios');
+    const detalle = await request(app).get(`/api/refugios/${idRefugio}`);
+    expect(lista.status).toBe(200);
+    expect(detalle.status).toBe(200);
+    const registro = lista.body.find((r) => r.id === idRefugio);
+    expect(registro).toHaveProperty('enAdopcion');
+    expect(registro).not.toHaveProperty('solicitudesAbiertas');
+    expect(detalle.body).not.toHaveProperty('solicitudes');
+    expect(detalle.body.resenas).toHaveLength(2);
+    expect(await db.una('SELECT titulo FROM solicitud_donacion WHERE id_solicitud = $1', [idSolicitud]))
+      .toEqual({ titulo });
   });
 });

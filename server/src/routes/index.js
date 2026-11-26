@@ -14,7 +14,6 @@ const avistamientos = require('../controllers/avistamientos.controller');
 const coincidencias = require('../controllers/coincidencias.controller');
 const notificaciones = require('../controllers/notificaciones.controller');
 const refugios = require('../controllers/refugios.controller');
-const donaciones = require('../controllers/donaciones.controller');
 const admin = require('../controllers/admin.controller');
 const multimedia = require('../controllers/multimedia.controller');
 
@@ -97,16 +96,11 @@ router.get('/notificaciones', verificarToken, a(notificaciones.listar));
 router.patch('/notificaciones/leidas', verificarToken, a(notificaciones.marcarTodas));
 router.patch('/notificaciones/:id/leida', verificarToken, a(notificaciones.marcarLeida));
 
-// Refugios, valoraciones y donaciones (RF-24, RF-25)
+// Refugios y valoraciones (RF-24)
 router.get('/refugios', a(refugios.listar));
 router.get('/refugios/mis-avistamientos', verificarToken, verificarRol(ROL.REFUGIO), a(avistamientos.delRefugio));
 router.get('/refugios/:id', sesionOpcional, a(refugios.obtener));
 router.post('/refugios/:id/valoraciones', verificarToken, verificarRol(ROL.CIUDADANO), a(refugios.valorar));
-router.get('/donaciones', a(donaciones.listarAbiertas));
-router.get('/donaciones/mias', verificarToken, verificarRol(ROL.REFUGIO), a(donaciones.misSolicitudes));
-router.post('/donaciones', verificarToken, verificarRol(ROL.REFUGIO), a(donaciones.crear));
-router.patch('/donaciones/:id', verificarToken, verificarRol(ROL.REFUGIO), a(donaciones.cambiarEstado));
-router.post('/donaciones/:id/aportes', verificarToken, a(donaciones.aportar));
 
 // Administración (RF-17, RF-19, RNF-22)
 const soloAdmin = [verificarToken, verificarRol(ROL.ADMIN)];
