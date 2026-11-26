@@ -145,7 +145,7 @@
 .figma-reporte-estado { grid-area: estado; min-width: 0; }
 .figma-estado-pill { cursor: pointer; max-width: 100%; appearance: none; padding: 3px 9px; border-radius: 20px; background: #ffcc15; color: #1f1b2e; font-size: 11px; font-weight: 750; }
 .figma-estado-pill:is([data-estado='4'],[data-estado='5'],[data-estado='6']) { background: #22c55e; color: #111b16; }
-.figma-estado-pill[data-estado='2'] { background: var(--color-hallada); color: var(--color-fondo); }
+.figma-estado-pill[data-estado='2'] { background: var(--color-recuperada); color: white; }
 .figma-estado-pill option { background: var(--campo-figma); color: var(--color-texto); }
 .figma-reporte-acciones { grid-area: acciones; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
 .figma-reporte-acciones > * { display: grid; place-items: center; min-height: 36px; border-radius: 10px; border: 1px solid transparent; background: var(--accion-figma); color: var(--color-lavanda); font-size: 13px; font-weight: 700; }

@@ -10,7 +10,7 @@ export const ESTILO_TIPO = {
 };
 
 const ESTADOS_RESUELTOS = [2, 4, 6];
-export const CLASE_RECUPERADA = 'bg-hallada text-fondo';
+export const CLASE_RECUPERADA = 'bg-recuperada text-white';
 export const muestraAvistamiento = (p) => p.idTipo === 1 && p.idEstado === 1 && p.tieneAvistamientos;
 
 export function InsigniaTipo({ idTipo }) {
@@ -19,7 +19,7 @@ export function InsigniaTipo({ idTipo }) {
 }
 
 export function InsigniaEstado({ idEstado, estado }) {
-  const color = idEstado === 2 ? `border-hallada ${CLASE_RECUPERADA}`
+  const color = idEstado === 2 ? `border-recuperada ${CLASE_RECUPERADA}`
     : ESTADOS_RESUELTOS.includes(idEstado) ? 'border-adopcion/40 bg-adopcion/15 text-adopcion' : 'border-ambar/40 bg-ambar/10 text-ambar';
   return (
     <span className={`inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${color}`}>

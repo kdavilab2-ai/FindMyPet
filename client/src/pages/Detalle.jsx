@@ -110,7 +110,11 @@ export default function Detalle() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               {p.idEstado !== 2 && <InsigniaTipo idTipo={p.idTipo} />}
-              {muestraAvistamiento(p) && <Link to={`/publicaciones/${p.id}#avistamientos`} aria-label="Ver avistamientos"><InsigniaTipo idTipo={2} /></Link>}
+              {muestraAvistamiento(p) && (
+                <Link to={`/publicaciones/${p.id}#avistamientos`} aria-label="Ver avistamientos" className="inline-flex rounded-md">
+                  <InsigniaTipo idTipo={2} />
+                </Link>
+              )}
               <InsigniaEstado idEstado={p.idEstado} estado={p.estado} />
             </div>
             <h1 className="mt-3 text-3xl text-lavanda sm:text-4xl">{nombre}</h1>

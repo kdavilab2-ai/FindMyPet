@@ -29,22 +29,27 @@ function agregarAvistamientosDemo(ejemplos) {
     let agregados = 0;
     for (const ejemplo of ejemplos) {
       const [origen] = await tx.consulta(
-        `SELECT p.id_publicacion, ub.id_sector, testigo.id_usuario, testigo.telefono
+        `SELECT p.id_publicacion, p.id_estado, ub.id_sector, testigo.id_usuario, testigo.telefono
          FROM publicacion p JOIN reporte r USING (id_publicacion) JOIN ubicacion ub USING (id_ubicacion)
          JOIN usuario autor ON autor.id_usuario = p.id_usuario JOIN usuario testigo ON testigo.correo = $3
-         WHERE p.nombre_animal = $1 AND autor.correo = $2 AND p.id_tipo = $4 AND p.id_estado = $5
-           AND testigo.telefono IS NOT NULL
+         WHERE p.nombre_animal = $1 AND autor.correo = $2 AND p.id_tipo = $4 AND testigo.telefono IS NOT NULL
          ORDER BY p.id_publicacion LIMIT 1 FOR UPDATE OF p`,
-        [ejemplo.mascota, ejemplo.autor, ejemplo.testigo, TIPO.DESAPARECIDA, ESTADO.DESAPARECIDA_PENDIENTE],
+        [ejemplo.mascota, ejemplo.autor, ejemplo.testigo, TIPO.DESAPARECIDA],
       );
       if (!origen) continue;
-      const descripcion = `Ejemplo de demostración. ${ejemplo.comentario}`;
+      const descripcion = ejemplo.comentario;
+      const descripcionAnterior = `Ejemplo de demostración. ${descripcion}`;
       const [existente] = await tx.consulta(
-        `SELECT 1 FROM reporte r JOIN publicacion p USING (id_publicacion)
-         WHERE r.id_desaparicion_origen = $1 AND p.id_usuario = $2 AND p.descripcion = $3`,
-        [origen.idPublicacion, origen.idUsuario, descripcion],
+        `SELECT p.id_publicacion, p.descripcion FROM reporte r JOIN publicacion p USING (id_publicacion)
+         WHERE r.id_desaparicion_origen = $1 AND p.id_usuario = $2 AND p.descripcion IN ($3, $4)
+         ORDER BY p.id_publicacion LIMIT 1 FOR UPDATE OF p`,
+        [origen.idPublicacion, origen.idUsuario, descripcion, descripcionAnterior],
       );
-      if (existente) continue;
+      if (existente?.descripcion === descripcionAnterior) {
+        await tx.consulta('UPDATE publicacion SET descripcion = $1 WHERE id_publicacion = $2',
+          [descripcion, existente.idPublicacion]);
+      }
+      if (existente || origen.idEstado !== ESTADO.DESAPARECIDA_PENDIENTE) continue;
       const [pub] = await tx.consulta(
         `INSERT INTO publicacion (id_usuario, id_tipo, id_estado, id_especie, id_raza, id_tamano, descripcion)
          SELECT $2, $3, $4, id_especie, id_raza, id_tamano, $5 FROM publicacion WHERE id_publicacion = $1
