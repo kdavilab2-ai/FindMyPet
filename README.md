@@ -52,7 +52,7 @@ Al abrir FindMyPet sin una sesión iniciada, verás **Iniciar sesión**. Al ingr
 
 ### Presentación con datos ficticios
 
-Después de instalar FindMyPet, haz doble clic en **Abrir demostracion FindMyPet.bat**. Abre [la demostración](http://localhost:5174) con una base PostgreSQL separada y un rótulo visible. El primer inicio prepara el contenido. Los siguientes conservan lo que hagas durante el ensayo y evitan duplicar los ejemplos. Usa **Detener FindMyPet.bat** para cerrar los servidores.
+Después de instalar FindMyPet, haz doble clic en **Abrir demostracion FindMyPet.bat**. Abre [la demostración](http://localhost:5174) con una base PostgreSQL separada que contiene datos ficticios. El primer inicio prepara el contenido. Los siguientes conservan lo que hagas durante el ensayo y evitan duplicar los ejemplos. Usa **Detener FindMyPet.bat** para cerrar los servidores.
 
 Las cinco cuentas ficticias de esta tabla usan la contraseña de demostración **`Clave1234`**. Los correos usan el dominio reservado `.test` y los teléfonos son de muestra. Las coincidencias se calculan por atributos sin enviar fotos a servicios externos.
 

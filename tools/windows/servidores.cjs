@@ -169,14 +169,11 @@ async function servir() {
       process.env.DATABASE_URL = await prepararBase(base);
       process.env.DB_SSL = 'false';
       process.env.JWT_SECRET = randomBytes(32).toString('hex');
-      process.env.VITE_DEMOSTRACION = '1';
       process.env.FRONTEND_URL = enlace;
       process.env.CORS_ORIGIN = enlace;
       delete process.env.GEMINI_API_KEY;
       delete process.env.SMTP_HOST;
       await poblar(join(runtime, '.env.demo-clave'));
-    } else {
-      process.env.VITE_DEMOSTRACION = '0';
     }
     ({ pool } = cargarApi('./src/lib/db'));
     const { rows: [fila] } = await pool.query("SELECT to_regclass('public.usuario') AS tabla");
