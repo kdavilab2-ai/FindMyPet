@@ -98,7 +98,6 @@ export default function Inicio() {
         ))}
       </div>
       <h2 className="figma-recientes-titulo">Mascotas recientes</h2>
-      <Link to={urlListado(rutaResultados)} className="figma-ver-todas">Ver todas</Link>
       <div className="figma-resultados" aria-live="polite">
         <Alerta>{error}</Alerta>
         {!recientes && !error && <Cargando />}
@@ -106,6 +105,7 @@ export default function Inicio() {
           ? <Vacio titulo="No hay publicaciones para esta búsqueda">Cambia los filtros o crea un reporte.</Vacio>
           : <div className="figma-tarjetas">{recientes.map((p) => <TarjetaMascota key={p.id} p={p} variante="inicio" />)}</div>)}
       </div>
+      <Link to={urlListado(rutaResultados)} className="figma-ver-todas">Ver todas</Link>
     </section>
   );
 }

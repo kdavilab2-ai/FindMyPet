@@ -120,7 +120,7 @@ export function DetalleRefugio() {
         </div>
         {puedeValorar && (
           <form onSubmit={valorar} className="panel h-fit space-y-3 p-5">
-            <h2 className="text-lg">Valora la atención (RF-24)</h2>
+            <h2 className="text-lg">Valora la atención</h2>
             <Estrellas valor={resena.calificacion} alCambiar={(n) => setResena({ ...resena, calificacion: n })} tamano="text-3xl" />
             <textarea className="input" rows={3} maxLength={1000} placeholder="Cuéntanos tu experiencia" value={resena.comentario} onChange={(e) => setResena({ ...resena, comentario: e.target.value })} />
             <button className="btn btn-primario">Enviar valoración</button>

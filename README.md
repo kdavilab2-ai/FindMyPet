@@ -110,6 +110,10 @@ Desde **Mi refugio → Gestionar traslado**, el refugio confirma la recepción, 
 
 El análisis sugiere similitudes y avisa a los propietarios. Usa ubicación, fechas y atributos locales, incluidas señas comparables en la descripción. Con `GEMINI_API_KEY`, la comparación visual usa la foto principal de la mascota perdida y las fotos del aporte publicado en **Avistamientos** de esa ficha. Los reportes independientes siguen participando mediante sus atributos. Indicar una posible identificación deja la desaparición activa. El propietario confirma la recuperación en el estado de su reporte.
 
+## Contacto para adopciones
+
+Al pulsar **Me interesa adoptar**, la ficha confirma que avisó al refugio. Solo el refugio responsable puede ver el interés y los datos de contacto compartidos en **Mi refugio → Personas interesadas en adoptar** o en su ficha de adopción. Puede escribir al correo de la persona o llamarla si registró un teléfono. El interés queda registrado una sola vez por persona y publicación.
+
 ## Despliegue
 - **Base de datos:** Neon → crear proyecto → copiar la *connection string* (incluye `?sslmode=require`).
 - **Backend:** Render → New → Blueprint con `render.yaml`, o Web Service con raíz `server`, build `npm install`,

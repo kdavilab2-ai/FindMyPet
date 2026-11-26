@@ -150,8 +150,9 @@ export default function Reportar() {
     const senas = formularioTraslado ? senasHallazgo.trim() : '';
     const descripcion = senas ? `${datos.descripcion.trim()}\n\nSeñas particulares: ${senas}` : datos.descripcion;
     if (descripcion.length > 2000) return setError('El estado y las señas particulares admiten hasta 2000 caracteres en total');
-    const whatsapp = datos.whatsapp.replace(/[ -]/g, '');
-    if (!datos.telefono && !whatsapp && !datos.correoContacto) return setError('Ingrese al menos un dato de contacto');
+    const whatsapp = tipo === 3 ? '' : datos.whatsapp.replace(/[ -]/g, '');
+    if (!datos.telefono && !whatsapp && !datos.correoContacto) return setError(tipo === 3
+      ? 'Ingrese un teléfono o correo para la adopción' : 'Ingrese al menos un dato de contacto');
     if (datos.telefono && !/^0\d{9}$/.test(datos.telefono)) return setError('El teléfono debe tener 10 dígitos y empezar con 0');
     if (whatsapp && !/^(?:0\d{9}|\+593[1-9]\d{8})$/.test(whatsapp)) {
       return setError('Ingrese un WhatsApp ecuatoriano de 10 dígitos o use +593 sin el cero inicial');
@@ -160,7 +161,7 @@ export default function Reportar() {
 
     const f = new FormData();
     f.append('tipo', tipo);
-    const { colores, idRefugioCustodia, notasCustodia, ...camposReporte } = { ...datos, descripcion };
+    const { colores, idRefugioCustodia, notasCustodia, ...camposReporte } = { ...datos, descripcion, whatsapp };
     for (const [k, v] of Object.entries(camposReporte)) f.append(k, v);
     if (vinculado) {
       f.set('idDesaparicionOrigen', fichaOrigen.id);
@@ -345,8 +346,8 @@ export default function Reportar() {
 
           <fieldset>
             <legend className="etiqueta">Contacto (al menos uno; solo lo verán usuarios registrados)</legend>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <input className="input" type="tel" placeholder="WhatsApp 09XXXXXXXX o +5939XXXXXXXX" aria-label="WhatsApp" {...campo('whatsapp')} />
+            <div className={`grid gap-3 ${tipo === 3 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
+              {tipo !== 3 && <input className="input" type="tel" placeholder="WhatsApp 09XXXXXXXX o +5939XXXXXXXX" aria-label="WhatsApp" {...campo('whatsapp')} />}
               <input className="input" inputMode="numeric" placeholder="Teléfono 09XXXXXXXX" aria-label="Teléfono" {...campo('telefono')} />
               <input className="input" type="email" placeholder="Correo" aria-label="Correo de contacto" {...campo('correoContacto')} />
             </div>

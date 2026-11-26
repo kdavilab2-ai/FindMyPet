@@ -19,6 +19,7 @@
 .figma-nav { display: flex; align-items: stretch; justify-content: space-between; gap: 20px; min-height: 76px; max-width: 1920px; margin-inline: auto; padding-inline: clamp(20px, 3vw, 44px); }
 .figma-nav > a, .figma-acciones-nav { display: flex; align-items: center; }
 .figma-marca { display: inline-flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 700; white-space: nowrap; }
+.figma-marca-grande { font-size: 30px; font-weight: 800; }
 .figma-enlaces-nav { display: flex; align-items: stretch; gap: clamp(14px, 2.5vw, 44px); }
 .figma-enlace-nav { position: relative; display: grid; place-items: center; color: var(--suave-figma); font-size: 15px; white-space: nowrap; }
 .figma-enlace-nav:hover { color: var(--color-texto); }
@@ -37,7 +38,7 @@
   display: grid;
   grid-template-columns: minmax(0, 820fr) minmax(105px, 150fr) minmax(105px, 150fr) minmax(90px, 116fr);
   grid-template-areas: 'titulo titulo titulo titulo' 'buscar especie estado zona' 'resumen resumen resumen resumen'
-    'recientes recientes recientes ver' 'resultados resultados resultados resultados';
+    'recientes recientes recientes recientes' 'resultados resultados resultados resultados' 'ver ver ver ver';
   column-gap: 14px;
   align-items: center;
   padding-top: 34px;
@@ -60,7 +61,7 @@
 .figma-contador-texto { display: grid; line-height: 1.22; }
 .figma-contador strong { margin-top: 2px; font-size: 28px; line-height: 1.15; }
 .figma-recientes-titulo { grid-area: recientes; margin-top: 27px; font-size: 22px; font-weight: 700; letter-spacing: normal; }
-.figma-ver-todas { grid-area: ver; justify-self: end; margin-top: 27px; color: var(--color-lavanda); font-size: 14px; font-weight: 700; }
+.figma-ver-todas { grid-area: ver; justify-self: end; margin-top: 16px; color: var(--color-lavanda); font-size: 14px; font-weight: 700; }
 .figma-ver-todas:hover { text-decoration: underline; }
 .figma-resultados { grid-area: resultados; margin-top: 16px; min-width: 0; }
 .figma-tarjetas { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 20px; }

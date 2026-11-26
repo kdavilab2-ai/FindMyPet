@@ -181,14 +181,32 @@ describe('RF-05, RF-06, RF-14, RNF-13: gestión por el autor', () => {
 });
 
 describe('RF-15: contacto para adopción notifica al refugio', () => {
-  test('el interesado obtiene el contacto y el refugio recibe una notificación', async () => {
+  test('la adopción requiere teléfono o correo aun cuando se indique WhatsApp', async () => {
+    const sinCanal = await publicar(refugio.token, { tipo: 3, estadoSalud: 'Sano', telefono: '', whatsapp: '0900000004' });
+    expect(sinCanal.status).toBe(400);
+    expect(sinCanal.body.error).toContain('teléfono o correo');
+  });
+
+  test('solo el refugio dueño recibe el interés y los datos de contacto, una vez por persona', async () => {
     const [pelusa] = (await request(app).get('/api/publicaciones?tipo=3')).body.datos;
-    const res = await request(app).post(`/api/publicaciones/${pelusa.id}/interes`).set(conToken(luis.token));
-    expect(res.status).toBe(200);
-    expect(res.body.contactos[0].valor).toBe('0900000004');
+    const enviar = () => request(app).post(`/api/publicaciones/${pelusa.id}/interes`).set(conToken(luis.token));
+    const resultados = await Promise.all([enviar(), enviar()]);
+    for (const res of resultados) {
+      expect(res.status).toBe(200);
+      expect(res.body.contactos).toEqual([{ tipo: 'Teléfono', valor: '0900000004' }]);
+    }
     const notif = await request(app).get('/api/notificaciones').set(conToken(refugio.token));
     expect(notif.body.noLeidas).toBe(1);
     expect(notif.body.datos[0].mensaje).toContain('interesado en adoptar a Pelusa');
+    const ruta = `/api/refugios/mis-intereses?publicacion=${pelusa.id}`;
+    const destinos = await request(app).get(ruta).set(conToken(refugio.token));
+    expect(destinos.headers['cache-control']).toBe('no-store');
+    expect(destinos.body).toMatchObject([{ idPublicacion: pelusa.id, interesado: 'Luis Prueba', telefono: '0000000003', correo: 'luis@findmypet.test' }]);
+    const otroRefugio = await crearUsuario({ correo: 'otro-refugio@findmypet.test', rol: 2 });
+    expect((await request(app).get(ruta).set(conToken(otroRefugio.token))).body).toEqual([]);
+    expect((await request(app).get(ruta).set(conToken(refugioPendiente.token))).status).toBe(403);
+    expect((await request(app).get(ruta).set(conToken(ana.token))).status).toBe(403);
+    expect((await request(app).get(ruta)).status).toBe(401);
     const propia = await request(app).post(`/api/publicaciones/${pelusa.id}/interes`).set(conToken(refugio.token));
     expect(propia.status).toBe(400);
     await request(app).patch(`/api/publicaciones/${pelusa.id}/estado`).set(conToken(refugio.token)).send({ idEstado: 6 });

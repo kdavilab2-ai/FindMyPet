@@ -8,6 +8,7 @@ import CoordinacionAvistamiento from '../components/CoordinacionAvistamiento';
 import ConfirmarRecuperacion from '../components/ConfirmarRecuperacion';
 import EnlacesContacto from '../components/EnlacesContacto';
 import AvistamientosPublicacion from '../components/AvistamientosPublicacion';
+import InteresesAdopcion from '../components/InteresesAdopcion';
 import {
   Alerta, Cargando, IconoEspecie, InsigniaEstado, InsigniaTipo, Modal, formatoFecha, formatoFechaHora, muestraAvistamiento,
 } from '../components/Comunes';
@@ -28,13 +29,14 @@ export default function Detalle() {
   const { id } = useParams();
   const { state, hash, key } = useLocation();
   const navegar = useNavigate();
-  const { usuario, esAdmin } = useAuth();
+  const { usuario, esAdmin, refugioAutorizado } = useAuth();
   const { catalogos } = useCatalogos();
   const [p, setP] = useState(null);
   const [error, setError] = useState('');
   const [aviso, setAviso] = useState('');
   const [activa, setActiva] = useState(null);
   const [contactosAdopcion, setContactosAdopcion] = useState(null);
+  const [enviandoInteres, setEnviandoInteres] = useState(false);
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
   const [confirmarRecuperar, setConfirmarRecuperar] = useState(false);
   const [generando, setGenerando] = useState(false);
@@ -42,9 +44,9 @@ export default function Detalle() {
   const cargar = useCallback(() => api.get(`/publicaciones/${id}`).then(setP).catch((e) => setError(e.message)), [id]);
   useEffect(() => { cargar(); }, [cargar]);
   useEffect(() => {
-    if (hash !== '#avistamientos' || p?.id !== Number(id)) return;
+    if (!['#avistamientos', '#intereses-adopcion'].includes(hash) || p?.id !== Number(id)) return;
     const reducirMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    document.getElementById('avistamientos')?.scrollIntoView({ behavior: reducirMovimiento ? 'instant' : 'smooth' });
+    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: reducirMovimiento ? 'instant' : 'smooth' });
   }, [hash, id, key, p?.id]);
 
   if (error && !p) return <div className="mx-auto max-w-5xl px-4 py-8"><Alerta>{error}</Alerta></div>;
@@ -55,7 +57,7 @@ export default function Detalle() {
     || p.multimedia.find((m) => m.url === p.foto)
     || p.multimedia[0];
   const estadosTipo = catalogos?.estados.filter((e) => e.idTipo === p.idTipo) || [];
-  const contactos = p.idTipo === 3 ? contactosAdopcion : p.contactos;
+  const interesEnviado = contactosAdopcion?.id === p.id ? contactosAdopcion : null;
 
   const cambiarEstado = async (idEstado) => {
     try { await api.patch(`/publicaciones/${id}/estado`, { idEstado: Number(idEstado) }); setAviso('Estado actualizado'); cargar(); } catch (e) { setError(e.message); }
@@ -64,11 +66,13 @@ export default function Detalle() {
     try { await api.delete(`/publicaciones/${id}`); navegar('/mis-reportes'); } catch (e) { setError(e.message); }
   };
   const meInteresa = async () => {
+    setEnviandoInteres(true);
+    setError('');
     try {
       const r = await api.post(`/publicaciones/${id}/interes`);
-      setContactosAdopcion(r.contactos);
-      setAviso(r.mensaje);
+      setContactosAdopcion({ id: p.id, contactos: r.contactos });
     } catch (e) { setError(e.message); }
+    finally { setEnviandoInteres(false); }
   };
   const descargarCartel = async () => {
     setGenerando(true);
@@ -170,19 +174,28 @@ export default function Detalle() {
             </div>
           )}
 
-          {!p.esAutor && (
+          {p.idTipo === 3 && p.esAutor && refugioAutorizado && <InteresesAdopcion key={p.id} publicacion={p.id} />}
+
+          {!p.esAutor && !(p.idTipo === 1 && p.idEstado === 2) && (
             <div className="panel space-y-3 p-5">
               <h2 className="text-base">{p.idTipo === 3 ? '¿Quieres adoptar?' : p.idTipo === 1 ? '¿La has visto?' : '¿Es tu mascota?'}</h2>
               {!usuario ? (
                 <p className="text-sm text-suave">
                   <Link to="/login" state={{ desde: `/publicaciones/${id}` }} className="font-semibold text-lavanda hover:underline">Inicia sesión</Link> para ver los datos de contacto.
                 </p>
-              ) : p.idTipo === 3 && !contactosAdopcion ? (
-                p.idEstado === 5
-                  ? <button className="btn btn-exito w-full" onClick={meInteresa}>💚 Me interesa adoptar a {nombre}</button>
-                  : <p className="text-sm text-suave">{nombre} ya fue adoptado. ¡Gracias por tu interés!</p>
+              ) : p.idTipo === 3 ? (
+                interesEnviado ? <div role="status" className="space-y-2 rounded-xl border border-adopcion/50 bg-adopcion/10 p-4">
+                  <p className="font-semibold">Interés enviado al refugio</p>
+                  <p className="text-sm text-suave">El refugio se pondrá en contacto contigo por teléfono o correo para coordinar.</p>
+                  <EnlacesContacto contactos={interesEnviado.contactos} />
+                </div> : p.idEstado === 5 ? <>
+                  <p className="text-sm text-suave">Al enviar tu interés, compartirás tu nombre, correo y teléfono de perfil si lo tienes registrado con este refugio.</p>
+                  <button className="btn btn-exito w-full" onClick={meInteresa} disabled={enviandoInteres}>
+                    {enviandoInteres ? 'Enviando…' : `Me interesa adoptar a ${nombre}`}
+                  </button>
+                </> : <p className="text-sm text-suave">{nombre} ya fue adoptado. ¡Gracias por tu interés!</p>
               ) : (
-                <EnlacesContacto contactos={contactos} nombre={nombre} />
+                <EnlacesContacto contactos={p.contactos} nombre={nombre} />
               )}
               {p.idTipo === 1 && p.idEstado === 1 && (
                 <>

@@ -49,4 +49,16 @@ async function valorar(req, res) {
   res.status(201).json(v);
 }
 
-module.exports = { listar, obtener, valorar };
+// RF-15 y RNF-05: los datos de contacto se comparten solo con el refugio dueño de la publicación.
+async function interesesAdopcion(req, res) {
+  if (!req.usuario.refugioAutorizado) throw new ErrorHttp(403, 'Solo los refugios autorizados pueden consultar intereses');
+  const id = req.query.publicacion === undefined ? null : entero(req.query.publicacion, 'Publicación');
+  const intereses = await consulta(`SELECT p.id_publicacion, p.nombre_animal, u.id_usuario,
+    u.nombres || ' ' || u.apellidos AS interesado, u.telefono, u.correo, i.fecha
+    FROM interes_adopcion i JOIN publicacion p USING (id_publicacion) JOIN usuario u ON u.id_usuario = i.id_usuario
+    WHERE p.id_usuario = $1 AND ($2::int IS NULL OR p.id_publicacion = $2) AND u.id_estado_cuenta = 1
+    ORDER BY i.fecha DESC, u.id_usuario, p.id_publicacion`, [req.usuario.id, id]);
+  res.set('Cache-Control', 'no-store').json(intereses);
+}
+
+module.exports = { listar, obtener, valorar, interesesAdopcion };

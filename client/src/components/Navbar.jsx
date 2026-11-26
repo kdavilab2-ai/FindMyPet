@@ -9,11 +9,10 @@ const claseEnlace = ({ isActive }) =>
   `figma-enlace-nav ${isActive ? 'activo' : ''}`;
 
 export function Logo({ grande = false }) {
-  if (grande) return <span className="flex items-center gap-2 text-3xl font-extrabold text-white"><IconoFigma nombre="marca" /> <span>FindMyPet</span></span>;
   return (
-    <span className="figma-marca">
-      <IconoFigma nombre="marca" />
-      <span className="text-white">Find MyPet</span>
+    <span className={`figma-marca text-white ${grande ? 'figma-marca-grande' : ''}`}>
+      <IconoFigma nombre="pata" />
+      <span>FindMyPet</span>
     </span>
   );
 }
@@ -41,6 +40,7 @@ function Notificaciones() {
     setAbierto(false);
     cargar();
     if (n.idTipo === 2) navegar(n.idPublicacion ? `/coincidencias?publicacion=${n.idPublicacion}` : '/coincidencias');
+    else if (n.idTipo === 3 && n.idPublicacion) navegar(`/publicaciones/${n.idPublicacion}#intereses-adopcion`);
     else if (n.tipo === 'Seguridad') navegar('/perfil/seguridad');
     else if (n.idPublicacion) navegar(`/publicaciones/${n.idPublicacion}`);
   };
@@ -110,6 +110,7 @@ function MenuUsuario() {
           <button className={opcion} onClick={() => ir('/perfil/seguridad')}>🛡️ Seguridad y privacidad</button>
           {esRefugio && <button className={opcion} onClick={() => ir('/mi-refugio')}>🏠 Mi refugio</button>}
           {esAdmin && <button className={opcion} onClick={() => ir('/admin')}>🛡️ Administración</button>}
+          <Link className={opcion} to="/perdidas" aria-label="Ver todas las mascotas perdidas" onClick={() => setAbierto(false)}>Ver todas</Link>
           <hr className="my-1 border-borde" />
           <button className={`${opcion} text-perdida`} onClick={() => { salir(); ir('/login', { replace: true }); }}>Cerrar sesión</button>
         </div>

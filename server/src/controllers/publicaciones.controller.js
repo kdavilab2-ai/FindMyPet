@@ -50,7 +50,7 @@ const SELECT_PUBLICACION = `
 const obtenerPorId = (id) => una(`${SELECT_PUBLICACION} WHERE p.id_publicacion = $1`, [id]);
 
 // ---------- Validación de datos del formulario ----------
-function leerContactos(b) {
+function leerContactos(b, idTipo) {
   const contactos = [];
   const telefono = texto(b.telefono);
   const whatsapp = texto(b.whatsapp).replace(/[ -]/g, '').replace(/^\+593(?=[1-9]\d{8}$)/, '0');
@@ -59,7 +59,7 @@ function leerContactos(b) {
     if (!REGEX_TELEFONO.test(telefono)) throw new ErrorHttp(400, 'El teléfono de contacto debe tener 10 dígitos y empezar con 0');
     contactos.push([TIPO_CONTACTO.TELEFONO, telefono]);
   }
-  if (whatsapp) {
+  if (whatsapp && idTipo !== TIPO.ADOPCION) {
     if (!REGEX_TELEFONO.test(whatsapp)) throw new ErrorHttp(400, 'Ingrese un WhatsApp ecuatoriano de 10 dígitos o use +593 sin el cero inicial');
     contactos.push([TIPO_CONTACTO.WHATSAPP, whatsapp]);
   }
@@ -67,7 +67,9 @@ function leerContactos(b) {
     if (!REGEX_CORREO.test(correo)) throw new ErrorHttp(400, 'El correo de contacto no es válido');
     contactos.push([TIPO_CONTACTO.CORREO, correo]);
   }
-  if (!contactos.length) throw new ErrorHttp(400, 'Ingrese al menos un dato de contacto (teléfono, WhatsApp o correo)');
+  if (!contactos.length) throw new ErrorHttp(400, idTipo === TIPO.ADOPCION
+    ? 'Ingrese un teléfono o correo para la adopción'
+    : 'Ingrese al menos un dato de contacto (teléfono, WhatsApp o correo)');
   return contactos;
 }
 
@@ -285,7 +287,7 @@ async function crear(req, res) {
   const animal = await leerDatosAnimal(b, idTipo);
   const hora = idTipo === TIPO.ENCONTRADA ? leerHora(b.horaEvento) : null;
   if (idTipo !== TIPO.ENCONTRADA && (b.idRefugioCustodia || b.situacionTraslado !== undefined)) throw new ErrorHttp(400, 'Solo los avistamientos admiten traslados a refugios');
-  const contactos = leerContactos(b);
+  const contactos = leerContactos(b, idTipo);
   let ubicacion;
   let fechaEvento;
   let estadoSalud;
@@ -345,7 +347,7 @@ async function actualizar(req, res) {
   if (actual.idTipo !== TIPO.ENCONTRADA && (b.idRefugioCustodia || b.situacionTraslado !== undefined)) throw new ErrorHttp(400, 'Solo los avistamientos admiten traslados a refugios');
   if (informaTraslado && req.usuario.id !== actual.idUsuario) throw new ErrorHttp(403, 'Solo el autor puede informar un traslado');
   const animal = await leerDatosAnimal(b, actual.idTipo);
-  const contactos = leerContactos(b);
+  const contactos = leerContactos(b, actual.idTipo);
   const quitar = listaEnteros(b.quitarArchivos, 'Archivo');
   const procesados = await prepararArchivos(req.files || []);
 
@@ -369,6 +371,12 @@ async function actualizar(req, res) {
     );
     if (!publicacion) throw new ErrorHttp(404, 'Publicación no encontrada');
     const visible = publicacion.idTipoContactoVisible;
+    // Conserva la preferencia privada de una ficha antigua mientras el refugio elige un canal válido.
+    if (actual.idTipo === TIPO.ADOPCION && visible === TIPO_CONTACTO.WHATSAPP) {
+      const [anterior] = await tx.consulta(`SELECT valor FROM contacto_publicacion
+        WHERE id_publicacion = $1 AND id_tipo_contacto = $2`, [actual.idPublicacion, visible]);
+      if (anterior) contactos.push([visible, anterior.valor]);
+    }
     if (visible && !contactos.some(([tipo]) => tipo === visible)) {
       throw new ErrorHttp(400, 'Elige otro contacto visible en Seguridad y privacidad antes de quitar el actual');
     }
@@ -430,27 +438,23 @@ async function eliminar(req, res) {
 // RF-15 / CU-11: el interesado obtiene el contacto y se notifica al refugio
 async function interesAdopcion(req, res) {
   const id = entero(req.params.id);
-  const p = await una('SELECT id_usuario, id_tipo, id_estado, nombre_animal FROM publicacion WHERE id_publicacion = $1', [id]);
-  if (!p || p.idTipo !== TIPO.ADOPCION) throw new ErrorHttp(404, 'Publicación de adopción no encontrada');
-  if (p.idEstado !== 5) throw new ErrorHttp(400, 'Este animal ya fue adoptado');
-  if (p.idUsuario === req.usuario.id) throw new ErrorHttp(400, 'Esta es su propia publicación');
-  const yaAviso = await una(
-    `SELECT 1 FROM notificacion WHERE id_usuario = $1 AND id_publicacion = $2 AND id_tipo_notificacion = $3 AND mensaje LIKE $4`,
-    [p.idUsuario, id, TIPO_NOTIFICACION.ADOPCION, `%${req.usuario.correo}%`],
-  );
-  if (!yaAviso) {
-    await consulta(
-      'INSERT INTO notificacion (id_usuario, id_publicacion, id_tipo_notificacion, mensaje) VALUES ($1, $2, $3, $4)',
-      [p.idUsuario, id, TIPO_NOTIFICACION.ADOPCION,
-        `${req.usuario.nombres} ${req.usuario.apellidos} (${req.usuario.correo}) está interesado en adoptar a ${p.nombreAnimal}`.slice(0, 255)],
-    );
-  }
-  const contactos = await consulta(
-    `SELECT tc.nombre AS tipo, cp.valor FROM contacto_publicacion cp
-     JOIN tipo_contacto tc ON tc.id_tipo_contacto = cp.id_tipo_contacto WHERE cp.id_publicacion = $1 ORDER BY cp.id_tipo_contacto`,
-    [id],
-  );
-  res.json({ contactos, mensaje: 'Notificamos al refugio de tu interés' });
+  const contactos = await transaccion(async ({ consulta: consultar }) => {
+    const [p] = await consultar(`SELECT id_usuario, id_tipo, id_estado, nombre_animal FROM publicacion
+      WHERE id_publicacion = $1 FOR SHARE`, [id]);
+    if (!p || p.idTipo !== TIPO.ADOPCION) throw new ErrorHttp(404, 'Publicación de adopción no encontrada');
+    if (p.idEstado !== ESTADO.DISPONIBLE) throw new ErrorHttp(400, 'Este animal ya fue adoptado');
+    if (p.idUsuario === req.usuario.id) throw new ErrorHttp(400, 'Esta es su propia publicación');
+    const [nuevo] = await consultar(`INSERT INTO interes_adopcion (id_publicacion, id_usuario)
+      VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING fecha`, [id, req.usuario.id]);
+    if (nuevo) {
+      await consultar('INSERT INTO notificacion (id_usuario, id_publicacion, id_tipo_notificacion, mensaje) VALUES ($1, $2, $3, $4)',
+        [p.idUsuario, id, TIPO_NOTIFICACION.ADOPCION,
+          `${req.usuario.nombres} ${req.usuario.apellidos} está interesado en adoptar a ${p.nombreAnimal}`.slice(0, 255)]);
+    }
+    const canales = await contactosPublicacion(consultar, id);
+    return canales.filter((c) => c.tipo === 'Teléfono' || c.tipo === 'Correo');
+  });
+  res.set('Cache-Control', 'no-store').json({ contactos, mensaje: 'Notificamos al refugio de tu interés' });
 }
 
 module.exports = {

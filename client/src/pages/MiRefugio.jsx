@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Alerta, Cargando } from '../components/Comunes';
+import InteresesAdopcion from '../components/InteresesAdopcion';
 
 // Panel del refugio: estado de autorización, adopciones y traslados
 export default function MiRefugio() {
@@ -33,6 +34,7 @@ export default function MiRefugio() {
             <Link to={`/refugios/${usuario.refugio.id}`} className="btn btn-secundario">Ver página pública</Link>
             <Link to="/mis-reportes" className="btn btn-secundario">Mis publicaciones</Link>
           </div>
+          <InteresesAdopcion />
           <section className="panel space-y-3 p-5">
             <h2 className="text-lg">Animales trasladados a mi refugio</h2>
             <Alerta>{errorAvistamientos}</Alerta>

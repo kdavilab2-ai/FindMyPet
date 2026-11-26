@@ -239,6 +239,13 @@ CREATE TABLE IF NOT EXISTS adopcion (
   estado_salud   VARCHAR(200) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS interes_adopcion (
+  id_publicacion INT REFERENCES adopcion(id_publicacion) ON DELETE CASCADE,
+  id_usuario INT REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+  fecha TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (id_publicacion, id_usuario)
+);
+
 CREATE TABLE IF NOT EXISTS contacto_publicacion (
   id_contacto      SERIAL PRIMARY KEY,
   id_publicacion   INT NOT NULL REFERENCES publicacion(id_publicacion) ON DELETE CASCADE,

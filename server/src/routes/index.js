@@ -101,6 +101,7 @@ router.patch('/notificaciones/:id/leida', verificarToken, a(notificaciones.marca
 // Refugios y valoraciones (RF-24)
 router.get('/refugios', a(refugios.listar));
 router.get('/refugios/mis-avistamientos', verificarToken, verificarRol(ROL.REFUGIO), a(avistamientos.delRefugio));
+router.get('/refugios/mis-intereses', verificarToken, verificarRol(ROL.REFUGIO), a(refugios.interesesAdopcion));
 router.get('/refugios/:id', sesionOpcional, a(refugios.obtener));
 router.post('/refugios/:id/valoraciones', verificarToken, verificarRol(ROL.CIUDADANO), a(refugios.valorar));
 
