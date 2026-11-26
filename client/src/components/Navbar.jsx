@@ -128,7 +128,7 @@ export default function Navbar({ cabeceraPropia = false }) {
         <div className="figma-enlaces-nav">
           <NavLink to="/" end className={claseEnlace}>Inicio</NavLink>
           <NavLink to="/perdidas" className={claseEnlace}>Perdidas</NavLink>
-          <NavLink to="/encontrados" className={claseEnlace}>Encontrados</NavLink>
+          <NavLink to="/halladas" className={claseEnlace}>Avistamientos</NavLink>
           <NavLink to="/adopcion" className={claseEnlace}>Adopción</NavLink>
           {usuario && <NavLink to="/mis-reportes" className={claseEnlace}>Mis reportes</NavLink>}
         </div>
@@ -166,7 +166,7 @@ export function NavInferior() {
       <Link to="/reportar" className="figma-mas-nav" aria-label="Reportar mascota">
         <span><IconoFigma nombre="mas" /></span>
       </Link>
-      {item('/encontrados', 'pataMenu', 'Encontrados')}
+      {item('/halladas', 'pataMenu', 'Avistamientos')}
       {item('/adopcion', 'adopcion', 'Adopción')}
     </nav>
   );

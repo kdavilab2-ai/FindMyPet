@@ -146,7 +146,7 @@ export default function Admin() {
               <tbody>
                 {filtrar(d, ['nombreAnimal', 'autor', 'correoAutor', 'especie']).map((p) => (
                   <tr key={p.id} className="border-b border-borde/50 last:border-0">
-                    <td className="p-3"><InsigniaTipo idTipo={p.idTipo} idDesaparicionOrigen={p.idDesaparicionOrigen} /> <Link to={`/publicaciones/${p.id}`} className="ml-1 font-semibold hover:text-lavanda">{p.nombreAnimal || 'Sin nombre'}</Link> <span className="text-suave">· {p.especie}</span>
+                    <td className="p-3"><InsigniaTipo idTipo={p.idTipo} /> <Link to={`/publicaciones/${p.id}`} className="ml-1 font-semibold hover:text-lavanda">{p.nombreAnimal || 'Sin nombre'}</Link> <span className="text-suave">· {p.especie}</span>
                       {p.advertencias > 0 && <span className="ml-2 text-xs text-ambar">⚠ {p.advertencias}</span>}</td>
                     <td className="p-3"><InsigniaEstado idEstado={p.idEstado} estado={p.estado} /></td>
                     <td className="p-3">{p.autor}<br /><span className="text-xs text-suave">{p.correoAutor}</span></td>

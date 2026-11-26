@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { urlArchivo } from '../services/api';
-import { IconoEspecie, InsigniaEstado, InsigniaTipo, formatoFecha, textoTipoPublicacion, textoUbicacion } from './Comunes';
+import { ESTILO_TIPO, IconoEspecie, InsigniaEstado, InsigniaTipo, formatoFecha, textoUbicacion } from './Comunes';
 import IconoFigma from './IconoFigma';
 
 export function FotoMascotaFigma({ p, className = '' }) {
@@ -23,7 +23,7 @@ export default function TarjetaMascota({ p, variante }) {
     return (
       <Link className="figma-tarjeta" to={`/publicaciones/${p.id}`}>
         <FotoMascotaFigma p={p} />
-        <span className={`figma-tipo figma-tipo-${p.idTipo}`}>{textoTipoPublicacion(p)}</span>
+        <span className={`figma-tipo figma-tipo-${p.idTipo}`}>{ESTILO_TIPO[p.idTipo].texto}</span>
         <div className="figma-tarjeta-texto">
           <h3>{p.nombreAnimal || 'Sin nombre'} · {p.especie}</h3>
           {resuelta && <InsigniaEstado idEstado={p.idEstado} estado={p.estado} />}
@@ -48,7 +48,7 @@ export default function TarjetaMascota({ p, variante }) {
         ) : (
           <div className="flex h-full items-center justify-center"><IconoEspecie especie={p.especie} className="text-6xl" /></div>
         )}
-        <div className="absolute left-2.5 top-2.5"><InsigniaTipo idTipo={p.idTipo} idDesaparicionOrigen={p.idDesaparicionOrigen} /></div>
+        <div className="absolute left-2.5 top-2.5"><InsigniaTipo idTipo={p.idTipo} /></div>
         {resuelta && <div className="absolute right-2.5 top-2.5"><InsigniaEstado idEstado={p.idEstado} estado={p.estado} /></div>}
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3.5">

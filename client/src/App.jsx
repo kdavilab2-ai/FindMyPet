@@ -1,4 +1,4 @@
-import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, Route, Routes, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import Navbar, { NavInferior } from './components/Navbar';
 import { RutaPrivada } from './components/Comunes';
@@ -32,7 +32,7 @@ function SubirAlCambiar() {
 }
 
 export default function App() {
-  const { pathname, search } = useLocation();
+  const { pathname } = useLocation();
   const acceso = pathname === '/login' || pathname === '/registro';
   const cabeceraPropia = pathname === '/reportar' || pathname === '/mis-reportes' || /^\/publicaciones\/[^/]+\/editar$/.test(pathname);
   return (
@@ -43,8 +43,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<RutaPrivada><Inicio /></RutaPrivada>} />
           <Route path="/perdidas" element={<Listado idTipo={1} />} />
-          <Route path="/encontrados" element={<Listado idTipo={2} />} />
-          <Route path="/halladas" element={<Navigate to={{ pathname: '/encontrados', search }} replace />} />
+          <Route path="/halladas" element={<Listado idTipo={2} />} />
           <Route path="/adopcion" element={<Listado idTipo={3} />} />
           <Route path="/publicaciones/:id" element={<Detalle />} />
           <Route path="/refugios" element={<ListaRefugios />} />

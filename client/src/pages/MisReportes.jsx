@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useCatalogos } from '../context/CatalogosContext';
-import { Alerta, Cargando, Modal, Vacio, formatoFecha, textoTipoPublicacion } from '../components/Comunes';
+import { Alerta, Cargando, ESTILO_TIPO, Modal, Vacio, formatoFecha } from '../components/Comunes';
 import EncabezadoFigma from '../components/EncabezadoFigma';
 import { FotoMascotaFigma } from '../components/TarjetaMascota';
 import ConfirmarRecuperacion from '../components/ConfirmarRecuperacion';
@@ -32,7 +32,7 @@ export default function MisReportes() {
     <div className="figma-pagina figma-mis-reportes">
       <EncabezadoFigma titulo="Mis reportes" />
       <div className="figma-filtros-reportes" role="group" aria-label="Filtrar mis reportes">
-        {[[0, 'Todos'], [1, 'Perdidas'], [2, 'Hallazgos'], [3, 'Adopción']].map(([v, t]) => (
+        {[[0, 'Todos'], [1, 'Perdidas'], [2, 'Avistamientos'], [3, 'Adopción']].map(([v, t]) => (
           <button key={v} onClick={() => setFiltro(v)} aria-pressed={filtro === v}>{t}</button>
         ))}
       </div>
@@ -52,7 +52,7 @@ export default function MisReportes() {
                 <FotoMascotaFigma p={p} />
                 <span>{p.nombreAnimal || 'Sin nombre'} · {p.especie}</span>
               </Link>
-              <span className="figma-reporte-tipo">{textoTipoPublicacion(p)}</span>
+              <span className="figma-reporte-tipo">{ESTILO_TIPO[p.idTipo].texto}</span>
               <time className="figma-reporte-fecha" dateTime={p.fechaEvento || p.fechaCreacion}>{formatoFecha(p.fechaEvento || p.fechaCreacion)}</time>
               <div className="figma-reporte-estado">
                 <select className="figma-estado-pill" data-estado={p.idEstado} aria-label="Estado" value={p.idEstado}
