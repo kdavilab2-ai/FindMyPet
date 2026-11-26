@@ -14,7 +14,8 @@ function Lado({ titulo, color, p }) {
       <div className="min-w-0 text-sm">
         <span className={`text-[11px] font-bold uppercase ${color}`}>{titulo}</span>
         <p className="truncate font-semibold">{p.nombre || 'Sin nombre'} · {p.especie}</p>
-        <p className="truncate text-xs text-suave">{p.sector} · {formatoFecha(p.fechaEvento)}</p>
+        <p className="truncate text-xs text-suave">{[p.sector, formatoFecha(p.fechaEvento), p.horaEvento].filter(Boolean).join(' · ')}</p>
+        {p.custodia && <p className="text-xs text-hallada">{p.custodia.confirmadaEn ? 'Recepción confirmada' : 'Traslado informado'} · {p.custodia.nombre}</p>}
       </div>
     </Link>
   );
@@ -43,7 +44,7 @@ export default function Coincidencias() {
     setAviso('');
     try {
       const r = await api.post(`/coincidencias/analizar/${publicacion}`);
-      setAviso(r.nuevas ? `La IA encontró ${r.nuevas} coincidencia(s) nueva(s)` : 'Análisis terminado: no hay coincidencias nuevas por ahora');
+      setAviso(r.nuevas ? `Nuevas coincidencias sugeridas: ${r.nuevas}` : 'Análisis terminado. Todavía no hay coincidencias nuevas.');
       cargar();
     } catch (e) { setError(e.message); } finally { setAnalizando(false); }
   };
@@ -52,10 +53,9 @@ export default function Coincidencias() {
     <div className="mx-auto max-w-5xl px-4 py-6">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="titulo-pagina">Coincidencias con IA</h1>
+          <h1 className="titulo-pagina">Posibles coincidencias</h1>
           <p className="mt-1 max-w-2xl text-sm text-suave">
-            Comparamos los reportes de mascotas perdidas con los animales encontrados por especie, raza, color, tamaño, ubicación, fecha y, si está activa, la foto.
-            Revisa cada sugerencia y confirma si es tu mascota.
+            Comparamos desapariciones y avistamientos por especie, raza, color, tamaño, ubicación, fecha y, cuando está disponible, similitud visual. Puedes indicar que podría ser tu mascota y confirmar su recuperación por separado en tu reporte.
           </p>
         </div>
         {publicacion && <button className="btn btn-primario" onClick={analizar} disabled={analizando}>{analizando ? 'Analizando…' : '🤖 Analizar ahora'}</button>}
@@ -77,12 +77,12 @@ export default function Coincidencias() {
                 <div className="h-2 flex-1 overflow-hidden rounded-full bg-fondo" role="meter" aria-valuenow={c.porcentaje} aria-valuemin={0} aria-valuemax={100} aria-label="Similitud">
                   <div className="h-full rounded-full bg-gradient-to-r from-violeta-oscuro to-violeta" style={{ width: `${c.porcentaje}%` }} />
                 </div>
-                <span className={`text-sm font-semibold ${COLOR_ESTADO[c.idEstado]}`}>{c.estado}</span>
+                <span className={`text-sm font-semibold ${COLOR_ESTADO[c.idEstado]}`}>{c.idEstado === 2 ? 'Posible identificación' : c.estado}</span>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Lado titulo="Mascota perdida" color="text-perdida" p={c.desaparecida} />
                 <span className="self-center text-xl text-suave" aria-hidden="true">⇄</span>
-                <Lado titulo="Animal encontrado" color="text-hallada" p={c.encontrada} />
+                <Lado titulo="Avistamiento" color="text-hallada" p={c.encontrada} />
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {c.criterios?.map((cr) => (
@@ -93,13 +93,13 @@ export default function Coincidencias() {
               </div>
               {c.soyPropietario && c.idEstado === 1 && (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button className="btn btn-exito" onClick={() => responder(c.id, 2)}>✓ Es mi mascota</button>
-                  <button className="btn btn-secundario" onClick={() => responder(c.id, 3)}>✕ No es</button>
+                  <button className="btn btn-exito" onClick={() => responder(c.id, 2)}>✓ Podría ser mi mascota</button>
+                  <button className="btn btn-secundario" onClick={() => responder(c.id, 3)}>✕ No es mi mascota</button>
                   <Link to={`/publicaciones/${c.encontrada.id}`} className="btn btn-secundario">Ver reporte y contactar</Link>
                 </div>
               )}
               {!c.soyPropietario && c.idEstado === 2 && (
-                <p className="mt-3 text-sm text-adopcion">El propietario confirmó que este animal es su mascota. Pronto se pondrá en contacto contigo.</p>
+                <p className="mt-3 text-sm text-adopcion">El propietario indicó que podría ser su mascota. La recuperación se confirma desde el reporte de desaparición.</p>
               )}
             </li>
           ))}

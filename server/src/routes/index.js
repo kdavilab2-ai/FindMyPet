@@ -10,6 +10,7 @@ const perfil = require('../controllers/perfil.controller');
 const seguridad = require('../controllers/seguridad.controller');
 const catalogos = require('../controllers/catalogos.controller');
 const publicaciones = require('../controllers/publicaciones.controller');
+const avistamientos = require('../controllers/avistamientos.controller');
 const coincidencias = require('../controllers/coincidencias.controller');
 const notificaciones = require('../controllers/notificaciones.controller');
 const refugios = require('../controllers/refugios.controller');
@@ -77,6 +78,12 @@ router.post('/publicaciones', verificarToken, recibirArchivos, a(publicaciones.c
 router.put('/publicaciones/:id', verificarToken, recibirArchivos, a(publicaciones.actualizar));
 router.patch('/publicaciones/:id/estado', verificarToken, a(publicaciones.cambiarEstado));
 router.delete('/publicaciones/:id', verificarToken, a(publicaciones.eliminar));
+router.get('/publicaciones/:id/coordinacion', verificarToken, a(avistamientos.coordinacion));
+router.post('/publicaciones/:id/coordinacion', verificarToken, rateLimit({
+  windowMs: 60_000, limit: 15, standardHeaders: true, legacyHeaders: false,
+  keyGenerator: (req) => String(req.usuario.id), message: { error: 'Espera un minuto antes de enviar más mensajes' },
+}), a(avistamientos.enviar));
+router.patch('/publicaciones/:id/custodia/confirmar', verificarToken, verificarRol(ROL.REFUGIO), a(avistamientos.confirmar));
 router.post('/publicaciones/:id/interes', verificarToken, a(publicaciones.interesAdopcion));
 
 // Coincidencias con IA (RF-09, RF-10, RF-11)
@@ -91,6 +98,7 @@ router.patch('/notificaciones/:id/leida', verificarToken, a(notificaciones.marca
 
 // Refugios, valoraciones y donaciones (RF-24, RF-25)
 router.get('/refugios', a(refugios.listar));
+router.get('/refugios/mis-avistamientos', verificarToken, verificarRol(ROL.REFUGIO), a(avistamientos.delRefugio));
 router.get('/refugios/:id', sesionOpcional, a(refugios.obtener));
 router.post('/refugios/:id/valoraciones', verificarToken, verificarRol(ROL.CIUDADANO), a(refugios.valorar));
 router.get('/donaciones', a(donaciones.listarAbiertas));

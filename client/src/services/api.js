@@ -30,7 +30,9 @@ async function peticion(ruta, { metodo = 'GET', datos, formulario, archivo = fal
     if (res.status === 401 && token && localStorage.getItem('token') === token && ruta !== '/auth/login') {
       window.dispatchEvent(new Event('sesion-expirada'));
     }
-    throw new Error(json.error || 'Ocurrió un error inesperado');
+    const error = new Error(json.error || 'Ocurrió un error inesperado');
+    error.status = res.status;
+    throw error;
   }
   return json;
 }

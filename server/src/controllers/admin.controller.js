@@ -2,7 +2,7 @@
 const { consulta, una, transaccion } = require('../lib/db');
 const { ErrorHttp } = require('../middlewares/errores');
 const { texto, entero } = require('../lib/validar');
-const { ESTADO_CUENTA, ESTADOS_POR_TIPO, TIPO_ACCION, TIPO_NOTIFICACION } = require('../lib/constantes');
+const { ESTADO, ESTADO_CUENTA, ESTADOS_POR_TIPO, TIPO_ACCION, TIPO_NOTIFICACION } = require('../lib/constantes');
 const { SELECT_PUBLICACION } = require('./publicaciones.controller');
 
 function motivoObligatorio(body) {
@@ -127,9 +127,10 @@ async function actualizarEstado(req, res) {
   const id = entero(req.params.id);
   const idEstado = entero(req.body.idEstado, 'Estado');
   const motivo = motivoObligatorio(req.body);
-  const p = await una('SELECT id_tipo FROM publicacion WHERE id_publicacion = $1', [id]);
+  const p = await una('SELECT id_tipo, id_usuario FROM publicacion WHERE id_publicacion = $1', [id]);
   if (!p) throw new ErrorHttp(404, 'Publicación no encontrada');
   if (!ESTADOS_POR_TIPO[p.idTipo].includes(idEstado)) throw new ErrorHttp(400, 'Estado no válido para este tipo');
+  if (idEstado === ESTADO.RECUPERADA && p.idUsuario !== req.usuario.id) throw new ErrorHttp(403, 'Solo el propietario puede confirmar la recuperación');
   await transaccion(async (tx) => {
     await tx.consulta('UPDATE publicacion SET id_estado = $1 WHERE id_publicacion = $2', [idEstado, id]);
     await tx.consulta('INSERT INTO moderacion (id_admin, id_publicacion, id_tipo_accion, motivo) VALUES ($1, $2, $3, $4)', [req.usuario.id, id, TIPO_ACCION.ACTUALIZAR, motivo]);

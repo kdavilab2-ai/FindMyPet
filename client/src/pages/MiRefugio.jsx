@@ -8,6 +8,8 @@ import { Alerta, Cargando, formatoFecha } from '../components/Comunes';
 export default function MiRefugio() {
   const { usuario, guardarSesion } = useAuth();
   const [solicitudes, setSolicitudes] = useState(null);
+  const [avistamientos, setAvistamientos] = useState(null);
+  const [errorAvistamientos, setErrorAvistamientos] = useState('');
   const [nueva, setNueva] = useState({ titulo: '', descripcion: '' });
   const [estado, setEstado] = useState({ error: '', ok: '' });
   const autorizado = usuario.refugio?.autorizado;
@@ -20,6 +22,9 @@ export default function MiRefugio() {
     api.get('/donaciones/mias').then(setSolicitudes).catch((e) => setEstado({ error: e.message, ok: '' }));
   }, [autorizado]);
   useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    if (autorizado) api.get('/refugios/mis-avistamientos').then(setAvistamientos).catch((e) => setErrorAvistamientos(e.message));
+  }, [autorizado]);
 
   const crear = async (e) => {
     e.preventDefault();
@@ -44,6 +49,16 @@ export default function MiRefugio() {
             <Link to={`/refugios/${usuario.refugio.id}`} className="btn btn-secundario">Ver página pública</Link>
             <Link to="/mis-reportes" className="btn btn-secundario">Mis publicaciones</Link>
           </div>
+          <section className="panel space-y-3 p-5">
+            <h2 className="text-lg">Animales trasladados a mi refugio</h2>
+            <Alerta>{errorAvistamientos}</Alerta>
+            {!avistamientos && !errorAvistamientos && <Cargando />}
+            {avistamientos?.length === 0 && <p className="text-sm text-suave">Todavía no se han informado traslados a tu refugio.</p>}
+            {avistamientos?.map((a) => <p key={a.id} className="text-sm">
+              <Link to={`/publicaciones/${a.id}`} className="text-lavanda underline">{a.nombreAnimal || a.especie}</Link>
+              {' · '}{a.confirmadaEn ? 'Recepción confirmada' : 'Recepción pendiente'}
+            </p>)}
+          </section>
           <Alerta tipo="exito">{estado.ok}</Alerta>
           <Alerta>{estado.error}</Alerta>
           <form onSubmit={crear} className="panel space-y-3 p-5">

@@ -51,7 +51,7 @@ async function crearPublicacion(p) {
     await consulta('INSERT INTO adopcion VALUES ($1, $2)', [idPub, p.salud]);
   } else {
     const idUb = await crearUbicacion(...p.ubicacion);
-    await consulta('INSERT INTO reporte VALUES ($1, $2, $3)', [idPub, idUb, p.fecha]);
+    await consulta('INSERT INTO reporte (id_publicacion, id_ubicacion, fecha_evento) VALUES ($1, $2, $3)', [idPub, idUb, p.fecha]);
   }
   await consulta('INSERT INTO contacto_publicacion (id_publicacion, id_tipo_contacto, valor) VALUES ($1, 2, $2)', [idPub, p.whatsapp]);
   const m = await una(

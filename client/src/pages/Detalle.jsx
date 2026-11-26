@@ -4,6 +4,8 @@ import { api, urlArchivo } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useCatalogos } from '../context/CatalogosContext';
 import Mapa from '../components/Mapa';
+import CoordinacionAvistamiento from '../components/CoordinacionAvistamiento';
+import ConfirmarRecuperacion from '../components/ConfirmarRecuperacion';
 import {
   Alerta, Cargando, ESTILO_TIPO, IconoEspecie, InsigniaEstado, InsigniaTipo, Modal, formatoFecha, formatoFechaHora,
 } from '../components/Comunes';
@@ -36,10 +38,11 @@ export default function Detalle() {
   const { catalogos } = useCatalogos();
   const [p, setP] = useState(null);
   const [error, setError] = useState('');
-  const [aviso, setAviso] = useState(state?.creada ? '¡Publicación creada! Estamos buscando coincidencias en segundo plano.' : '');
+  const [aviso, setAviso] = useState('');
   const [activa, setActiva] = useState(null);
   const [contactosAdopcion, setContactosAdopcion] = useState(null);
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
+  const [confirmarRecuperar, setConfirmarRecuperar] = useState(false);
   const [generando, setGenerando] = useState(false);
 
   const cargar = useCallback(() => api.get(`/publicaciones/${id}`).then(setP).catch((e) => setError(e.message)), [id]);
@@ -100,7 +103,7 @@ export default function Detalle() {
           )}
           {p.idTipo !== 3 && p.ubicacion?.latitud && (
             <div className="panel p-3">
-              <p className="mb-2 text-xs font-semibold text-suave">{p.idTipo === 1 ? 'Último lugar donde fue vista' : 'Lugar del hallazgo'}</p>
+              <p className="mb-2 text-xs font-semibold text-suave">{p.idTipo === 1 ? 'Último lugar donde fue vista' : 'Lugar del avistamiento'}</p>
               <Mapa punto={p.ubicacion} color={COLOR_TIPO[p.idTipo]} alto="h-56" />
             </div>
           )}
@@ -115,7 +118,7 @@ export default function Detalle() {
             </p>
           </div>
 
-          <Alerta tipo="exito">{aviso}</Alerta>
+          <Alerta tipo="exito">{aviso || (state?.creada && (p.idTipo === 2 ? 'Avistamiento registrado. Buscaremos posibles coincidencias.' : 'Publicación creada.'))}</Alerta>
           <Alerta>{error}</Alerta>
 
           <dl className="panel grid grid-cols-2 gap-4 p-5 sm:grid-cols-3">
@@ -123,7 +126,7 @@ export default function Detalle() {
             <Dato titulo="Raza" valor={p.raza || 'No indicada'} />
             <Dato titulo="Tamaño" valor={p.tamano || 'No indicado'} />
             <Dato titulo="Color" valor={p.colores.map((c) => c.nombre).join(', ') || 'No indicado'} />
-            {p.idTipo !== 3 && <Dato titulo={p.idTipo === 1 ? 'Desapareció' : 'Encontrada'} valor={formatoFecha(p.fechaEvento)} />}
+            {p.idTipo !== 3 && <Dato titulo={p.idTipo === 1 ? 'Desapareció' : 'Avistamiento'} valor={[formatoFecha(p.fechaEvento), p.horaEvento].filter(Boolean).join(' · ')} />}
             {p.idTipo === 3 && <Dato titulo="Estado de salud" valor={p.estadoSalud} />}
             {p.ubicacion?.direccion && <Dato titulo="Referencia" valor={p.ubicacion.direccion} />}
           </dl>
@@ -131,13 +134,20 @@ export default function Detalle() {
           <p className="whitespace-pre-line text-sm leading-relaxed">{p.descripcion}</p>
           <p className="text-xs text-suave">Publicado el {formatoFechaHora(p.fechaCreacion)}{p.autor && ` por ${p.autor}`}</p>
 
+          {p.custodia && <section className="panel space-y-1 border-hallada/40 p-5">
+            <h2 className="text-base text-lavanda">{p.custodia.confirmadaEn ? 'Recepción confirmada por el refugio' : 'Traslado a refugio informado'}</h2>
+            <Link to={`/refugios/${p.custodia.idRefugio}`} className="text-sm font-semibold text-lavanda underline">{p.custodia.nombre}</Link>
+            <p className="text-sm text-suave">{p.custodia.confirmadaEn ? 'El refugio confirmó que recibió al animal.' : 'El refugio aún debe confirmar que recibió al animal.'}</p>
+          </section>}
+          {p.custodia && usuario && <CoordinacionAvistamiento key={id} id={id} alConfirmar={cargar} />}
+
           {(p.esAutor || esAdmin) && (
             <div className="panel space-y-3 p-5">
               <h2 className="text-base">{p.esAutor ? 'Tu publicación' : 'Moderación'}</h2>
               {p.esAutor && (
                 <div>
                   <label className="etiqueta" htmlFor="estado">Estado del caso</label>
-                  <select id="estado" className="input" value={p.idEstado} onChange={(e) => cambiarEstado(e.target.value)}>
+                  <select id="estado" className="input" value={p.idEstado} onChange={(e) => Number(e.target.value) === 2 ? setConfirmarRecuperar(true) : cambiarEstado(e.target.value)}>
                     {estadosTipo.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
                   </select>
                 </div>
@@ -171,12 +181,14 @@ export default function Detalle() {
                   ))}
                 </div>
               )}
-              {p.idTipo === 1 && <p className="text-xs text-suave">¿Encontraste un animal parecido? <Link to="/reportar?tipo=2" className="text-lavanda underline">Repórtalo</Link> y la IA avisará a su dueño.</p>}
+              {p.idTipo === 1 && p.idEstado === 1 && <p className="text-xs text-suave">¿Viste un animal parecido? <Link to="/reportar?tipo=2" className="text-lavanda underline">Registra un avistamiento</Link>. Si encontramos similitudes, avisaremos al propietario.</p>}
             </div>
           )}
         </div>
       </div>
 
+      <ConfirmarRecuperacion nombre={nombre} abierto={confirmarRecuperar} alCerrar={() => setConfirmarRecuperar(false)}
+        alConfirmar={() => { setConfirmarRecuperar(false); cambiarEstado(2); }} />
       <Modal titulo="Eliminar publicación" abierto={confirmarEliminar} alCerrar={() => setConfirmarEliminar(false)}>
         <p className="text-sm text-suave">¿Seguro que deseas eliminar la publicación de {nombre}? Esta acción no se puede deshacer.</p>
         <div className="mt-5 flex justify-end gap-2">

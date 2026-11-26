@@ -7,10 +7,11 @@ const {
   REGEX_CORREO, REGEX_TELEFONO, texto, entero, enteroOpcional, fechaPasada, listaEnteros,
 } = require('../lib/validar');
 const {
-  TIPO, ESTADO_INICIAL, ESTADOS_POR_TIPO, TIPO_CONTACTO, TIPO_MULTIMEDIA, TIPO_NOTIFICACION, ROL, MAX_ARCHIVOS,
+  TIPO, ESTADO, ESTADO_INICIAL, ESTADOS_POR_TIPO, TIPO_CONTACTO, TIPO_MULTIMEDIA, TIPO_NOTIFICACION, ROL, MAX_ARCHIVOS,
 } = require('../lib/constantes');
 const coincidencias = require('../services/coincidencias.service');
 const alertas = require('../services/alertas.service');
+const { leerHora, guardarCustodia } = require('../services/avistamientos.service');
 
 const POR_PAGINA = 12;
 
@@ -18,8 +19,10 @@ const POR_PAGINA = 12;
 const SELECT_PUBLICACION = `
   SELECT p.id_publicacion AS id, p.id_usuario, p.id_tipo, tp.nombre AS tipo, p.id_estado, ep.nombre AS estado,
          p.id_especie, e.nombre AS especie, p.id_raza, rz.nombre AS raza, p.id_tamano, t.nombre AS tamano,
-         p.nombre_animal, p.descripcion, p.fecha_creacion, r.fecha_evento, a.estado_salud,
+         p.nombre_animal, p.descripcion, p.fecha_creacion, r.fecha_evento, to_char(r.hora_evento, 'HH24:MI') AS hora_evento, a.estado_salud,
          rf.id_refugio, rf.nombre AS refugio,
+         CASE WHEN cr.id_refugio IS NOT NULL THEN json_build_object('idRefugio', cr.id_refugio, 'nombre', rc.nombre,
+           'informadaEn', cr.informada_en, 'confirmadaEn', cr.confirmada_en) END AS custodia,
          ${JSON_UBICACION} AS ubicacion,
          COALESCE((SELECT json_agg(json_build_object('id', co.id_color, 'nombre', co.nombre) ORDER BY co.nombre)
                    FROM publicacion_color pc JOIN color co ON co.id_color = pc.id_color
@@ -33,6 +36,8 @@ const SELECT_PUBLICACION = `
   LEFT JOIN raza rz ON rz.id_raza = p.id_raza
   LEFT JOIN tamano t ON t.id_tamano = p.id_tamano
   LEFT JOIN reporte r ON r.id_publicacion = p.id_publicacion
+  LEFT JOIN custodia_refugio cr ON cr.id_publicacion = p.id_publicacion
+  LEFT JOIN refugio rc ON rc.id_refugio = cr.id_refugio
   LEFT JOIN adopcion a ON a.id_publicacion = p.id_publicacion
   LEFT JOIN refugio rf ON rf.id_usuario = p.id_usuario AND p.id_tipo = ${TIPO.ADOPCION}
   ${JOIN_UBICACION('COALESCE(r.id_ubicacion, rf.id_ubicacion)')}`;
@@ -203,6 +208,9 @@ async function obtener(req, res) {
   );
   const esAutor = req.usuario && req.usuario.id === p.idUsuario;
   p.esAutor = Boolean(esAutor);
+  if (esAutor && p.custodia) {
+    p.notasCustodia = (await una('SELECT notas FROM custodia_refugio WHERE id_publicacion = $1', [id]))?.notas || null;
+  }
   if (req.usuario) {
     p.contactos = await consulta(
       `SELECT tc.nombre AS tipo, cp.valor FROM contacto_publicacion cp
@@ -245,6 +253,8 @@ async function crear(req, res) {
   if (archivos.length < 1) throw new ErrorHttp(400, 'Agregue al menos una foto (máximo 5)');
 
   const animal = await leerDatosAnimal(b, idTipo);
+  const hora = idTipo === TIPO.ENCONTRADA ? leerHora(b.horaEvento) : null;
+  if (idTipo !== TIPO.ENCONTRADA && b.idRefugioCustodia) throw new ErrorHttp(400, 'Solo los avistamientos admiten traslados a refugios');
   const contactos = leerContactos(b);
   let ubicacion;
   let fechaEvento;
@@ -273,7 +283,8 @@ async function crear(req, res) {
       await tx.consulta('INSERT INTO adopcion (id_publicacion, estado_salud) VALUES ($1, $2)', [idPub, estadoSalud.slice(0, 200)]);
     } else {
       const idUbicacion = await guardarUbicacion(tx.consulta, ubicacion);
-      await tx.consulta('INSERT INTO reporte (id_publicacion, id_ubicacion, fecha_evento) VALUES ($1, $2, $3)', [idPub, idUbicacion, fechaEvento]);
+      await tx.consulta('INSERT INTO reporte (id_publicacion, id_ubicacion, fecha_evento, hora_evento) VALUES ($1, $2, $3, $4)', [idPub, idUbicacion, fechaEvento, hora]);
+      if (idTipo === TIPO.ENCONTRADA) await guardarCustodia(tx.consulta, idPub, req.usuario.id, b);
     }
     await guardarColoresYContactos(tx, idPub, animal.colores, contactos);
     await guardarArchivos(tx, idPub, procesados);
@@ -291,6 +302,9 @@ async function crear(req, res) {
 async function actualizar(req, res) {
   const actual = await buscarPropia(req);
   const b = req.body;
+  const hora = actual.idTipo === TIPO.ENCONTRADA ? leerHora(b.horaEvento) : null;
+  if (actual.idTipo !== TIPO.ENCONTRADA && b.idRefugioCustodia) throw new ErrorHttp(400, 'Solo los avistamientos admiten traslados a refugios');
+  if (b.idRefugioCustodia !== undefined && req.usuario.id !== actual.idUsuario) throw new ErrorHttp(403, 'Solo el autor puede informar un traslado');
   const animal = await leerDatosAnimal(b, actual.idTipo);
   const contactos = leerContactos(b);
   const quitar = listaEnteros(b.quitarArchivos, 'Archivo');
@@ -334,6 +348,10 @@ async function actualizar(req, res) {
       const [rep] = await tx.consulta('SELECT id_ubicacion FROM reporte WHERE id_publicacion = $1', [actual.idPublicacion]);
       await guardarUbicacion(tx.consulta, ubicacion, rep.idUbicacion);
       await tx.consulta('UPDATE reporte SET fecha_evento = $1 WHERE id_publicacion = $2', [fechaEvento, actual.idPublicacion]);
+      if (actual.idTipo === TIPO.ENCONTRADA) {
+        if (b.horaEvento !== undefined) await tx.consulta('UPDATE reporte SET hora_evento = $1 WHERE id_publicacion = $2', [hora, actual.idPublicacion]);
+        await guardarCustodia(tx.consulta, actual.idPublicacion, actual.idUsuario, b);
+      }
     }
     if (quitar.length) {
       await tx.consulta('DELETE FROM multimedia WHERE id_publicacion = $1 AND id_multimedia = ANY($2::int[])', [actual.idPublicacion, quitar]);
@@ -351,6 +369,7 @@ async function cambiarEstado(req, res) {
   const actual = await buscarPropia(req);
   const idEstado = entero(req.body.idEstado, 'Estado');
   if (!ESTADOS_POR_TIPO[actual.idTipo].includes(idEstado)) throw new ErrorHttp(400, 'Estado no válido para este tipo de publicación');
+  if (idEstado === ESTADO.RECUPERADA && actual.idUsuario !== req.usuario.id) throw new ErrorHttp(403, 'Solo el propietario puede confirmar la recuperación');
   await una('UPDATE publicacion SET id_estado = $1 WHERE id_publicacion = $2', [idEstado, actual.idPublicacion]);
   if (idEstado === ESTADO_INICIAL[actual.idTipo] && actual.idTipo !== TIPO.ADOPCION) {
     coincidencias.analizarEnSegundoPlano(actual.idPublicacion);

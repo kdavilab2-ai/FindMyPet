@@ -39,7 +39,10 @@ describe('RF-17, CU-14: moderación de publicaciones', () => {
   test('advertencia y cambio de estado requieren motivo', async () => {
     expect((await request(app).post(`/api/admin/publicaciones/${id}/advertencia`).set(conToken(admin.token)).send({})).status).toBe(400);
     expect((await request(app).post(`/api/admin/publicaciones/${id}/advertencia`).set(conToken(admin.token)).send({ motivo: 'Foto poco clara' })).status).toBe(201);
-    const est = await request(app).patch(`/api/admin/publicaciones/${id}/estado`).set(conToken(admin.token)).send({ idEstado: 2, motivo: 'El dueño avisó que apareció' });
+    const confirmarAjena = await request(app).patch(`/api/admin/publicaciones/${id}/estado`).set(conToken(admin.token)).send({ idEstado: 2, motivo: 'El dueño avisó que apareció' });
+    expect(confirmarAjena.status).toBe(403);
+    expect((await request(app).patch(`/api/publicaciones/${id}/estado`).set(conToken(ana.token)).send({ idEstado: 2 })).status).toBe(200);
+    const est = await request(app).patch(`/api/admin/publicaciones/${id}/estado`).set(conToken(admin.token)).send({ idEstado: 1, motivo: 'Reapertura revisada' });
     expect(est.status).toBe(200);
   });
 

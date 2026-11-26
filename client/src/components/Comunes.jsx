@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 // Colores por tipo de caso (guía de Figma): rojo desaparecida, azul encontrada, verde adopción
 export const ESTILO_TIPO = {
   1: { texto: 'Desaparecida', plural: 'Desaparecidas', clase: 'bg-perdida text-white', suave: 'bg-perdida/15 text-perdida border-perdida/40', ruta: '/perdidas' },
-  2: { texto: 'Encontrada', plural: 'Encontradas', clase: 'bg-hallada text-white', suave: 'bg-hallada/15 text-hallada border-hallada/40', ruta: '/halladas' },
+  2: { texto: 'Avistamiento', plural: 'Avistamientos', clase: 'bg-hallada text-white', suave: 'bg-hallada/15 text-hallada border-hallada/40', ruta: '/halladas' },
   3: { texto: 'En adopción', plural: 'En adopción', clase: 'bg-adopcion text-white', suave: 'bg-adopcion/15 text-adopcion border-adopcion/40', ruta: '/adopcion' },
 };
 

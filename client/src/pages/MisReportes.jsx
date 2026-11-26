@@ -5,6 +5,7 @@ import { useCatalogos } from '../context/CatalogosContext';
 import { Alerta, Cargando, ESTILO_TIPO, Modal, Vacio, formatoFecha } from '../components/Comunes';
 import EncabezadoFigma from '../components/EncabezadoFigma';
 import { FotoMascotaFigma } from '../components/TarjetaMascota';
+import ConfirmarRecuperacion from '../components/ConfirmarRecuperacion';
 
 // Figura 5 y 10: lista de reportes del usuario con su estado (RF-05, RF-06, RF-14)
 export default function MisReportes() {
@@ -13,6 +14,7 @@ export default function MisReportes() {
   const [filtro, setFiltro] = useState(0);
   const [error, setError] = useState('');
   const [eliminar, setEliminar] = useState(null);
+  const [recuperar, setRecuperar] = useState(null);
 
   const cargar = useCallback(() => api.get('/publicaciones/mias').then(setDatos).catch((e) => setError(e.message)), []);
   useEffect(() => { cargar(); }, [cargar]);
@@ -30,7 +32,7 @@ export default function MisReportes() {
     <div className="figma-pagina figma-mis-reportes">
       <EncabezadoFigma titulo="Mis reportes" />
       <div className="figma-filtros-reportes" role="group" aria-label="Filtrar mis reportes">
-        {[[0, 'Todos'], [1, 'Perdidas'], [2, 'Halladas'], [3, 'Adopción']].map(([v, t]) => (
+        {[[0, 'Todos'], [1, 'Perdidas'], [2, 'Avistamientos'], [3, 'Adopción']].map(([v, t]) => (
           <button key={v} onClick={() => setFiltro(v)} aria-pressed={filtro === v}>{t}</button>
         ))}
       </div>
@@ -54,7 +56,7 @@ export default function MisReportes() {
               <time className="figma-reporte-fecha" dateTime={p.fechaEvento || p.fechaCreacion}>{formatoFecha(p.fechaEvento || p.fechaCreacion)}</time>
               <div className="figma-reporte-estado">
                 <select className="figma-estado-pill" data-estado={p.idEstado} aria-label="Estado" value={p.idEstado}
-                  disabled={!catalogos} onChange={(e) => cambiarEstado(p, e.target.value)}>
+                  disabled={!catalogos} onChange={(e) => Number(e.target.value) === 2 ? setRecuperar(p) : cambiarEstado(p, e.target.value)}>
                   {catalogos ? catalogos.estados.filter((e) => e.idTipo === p.idTipo).map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)
                     : <option value={p.idEstado}>{p.estado}</option>}
                 </select>
@@ -73,6 +75,8 @@ export default function MisReportes() {
           </ul>
         </div>
       ))}
+      <ConfirmarRecuperacion nombre={recuperar?.nombreAnimal} abierto={Boolean(recuperar)} alCerrar={() => setRecuperar(null)}
+        alConfirmar={() => { cambiarEstado(recuperar, 2); setRecuperar(null); }} />
       <Modal titulo="Eliminar publicación" abierto={Boolean(eliminar)} alCerrar={() => setEliminar(null)}>
         <p className="text-sm text-suave">¿Eliminar la publicación de {eliminar?.nombreAnimal || 'este animal'}? Esta acción no se puede deshacer.</p>
         <div className="mt-5 flex justify-end gap-2">

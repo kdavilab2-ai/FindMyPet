@@ -1,4 +1,4 @@
-const { consulta, una } = require('../lib/db');
+const { consulta, una, transaccion } = require('../lib/db');
 const { ErrorHttp } = require('../middlewares/errores');
 const { entero } = require('../lib/validar');
 const { ESTADO_COINCIDENCIA, TIPO_NOTIFICACION, TIPO } = require('../lib/constantes');
@@ -10,6 +10,9 @@ const RESUMEN = (alias) => `json_build_object(
   'raza', (SELECT nombre FROM raza WHERE id_raza = ${alias}.id_raza),
   'foto', (SELECT m.url FROM multimedia m WHERE m.id_publicacion = ${alias}.id_publicacion AND m.id_tipo_multimedia = 1 ORDER BY m.id_multimedia LIMIT 1),
   'fechaEvento', (SELECT fecha_evento FROM reporte WHERE id_publicacion = ${alias}.id_publicacion),
+  'horaEvento', (SELECT to_char(hora_evento, 'HH24:MI') FROM reporte WHERE id_publicacion = ${alias}.id_publicacion),
+  'custodia', (SELECT json_build_object('nombre', rf.nombre, 'confirmadaEn', cr.confirmada_en)
+    FROM custodia_refugio cr JOIN refugio rf USING (id_refugio) WHERE cr.id_publicacion = ${alias}.id_publicacion),
   'sector', (SELECT s.nombre || ', ' || c.nombre FROM reporte r JOIN ubicacion u ON u.id_ubicacion = r.id_ubicacion
              JOIN sector s ON s.id_sector = u.id_sector JOIN canton c ON c.id_canton = s.id_canton
              WHERE r.id_publicacion = ${alias}.id_publicacion))`;
@@ -52,14 +55,16 @@ async function responder(req, res) {
   );
   if (!co) throw new ErrorHttp(404, 'Coincidencia no encontrada');
   if (co.propietario !== req.usuario.id) throw new ErrorHttp(403, 'Solo el propietario de la mascota puede responder');
-  await consulta('UPDATE coincidencia SET id_estado = $1 WHERE id_coincidencia = $2', [idEstado, id]);
-  if (idEstado === ESTADO_COINCIDENCIA.CONFIRMADA) {
-    await consulta(
-      'INSERT INTO notificacion (id_usuario, id_publicacion, id_tipo_notificacion, mensaje) VALUES ($1, $2, $3, $4)',
-      [co.hallador, co.idEncontrada, TIPO_NOTIFICACION.COINCIDENCIA,
-        `El propietario de ${co.nombreAnimal || 'una mascota'} cree que el animal que encontraste es suyo. Revisa tus notificaciones y contactos`],
-    );
-  }
+  await transaccion(async (tx) => {
+    const cambiadas = await tx.consulta('UPDATE coincidencia SET id_estado = $1 WHERE id_coincidencia = $2 AND id_estado <> $1 RETURNING id_coincidencia', [idEstado, id]);
+    if (cambiadas.length && idEstado === ESTADO_COINCIDENCIA.CONFIRMADA) {
+      await tx.consulta(
+        'INSERT INTO notificacion (id_usuario, id_publicacion, id_tipo_notificacion, mensaje) VALUES ($1, $2, $3, $4)',
+        [co.hallador, co.idEncontrada, TIPO_NOTIFICACION.COINCIDENCIA,
+          `El propietario de ${co.nombreAnimal || 'una mascota'} cree que el animal que encontraste es suyo. La recuperación sigue pendiente.`],
+      );
+    }
+  });
   res.json({ id, idEstado });
 }
 

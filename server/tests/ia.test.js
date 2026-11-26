@@ -56,7 +56,7 @@ describe('RF-09, RF-10, RF-11: coincidencias sugeridas', () => {
     expect(res.body).toHaveLength(1);
     expect(res.body[0].porcentaje).toBeGreaterThanOrEqual(60);
     expect(res.body[0].estado).toBe('Sugerida');
-    expect(res.body[0].criterios.map((c) => c.criterio)).toEqual(['Especie', 'Raza', 'Color', 'Tamaño', 'Ubicación', 'Fecha']);
+    expect(res.body[0].criterios.map((c) => c.criterio)).toEqual(['Especie', 'Raza', 'Color', 'Tamaño', 'Ubicación', 'Fecha', 'Señas particulares']);
     const notif = await request(app).get('/api/notificaciones').set(conToken(ana.token));
     expect(notif.body.datos[0].tipo).toBe('Coincidencia IA');
   });

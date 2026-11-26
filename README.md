@@ -87,6 +87,12 @@ Abre **Mi perfil → Seguridad y privacidad**. Después de actualizar, ejecuta `
 
 La exportación JSON incluye datos de la cuenta y referencias a los archivos propios. Las solicitudes de desactivación o eliminación llegan a **Administración → Solicitudes de cuenta**, donde se revisan. Para automatizar su ejecución hace falta definir qué sucede con reportes y adopciones pendientes, cómo se reactiva la cuenta y qué datos se deben conservar o eliminar. La verificación en dos pasos queda pendiente hasta configurar el almacenamiento protegido del segundo factor y el procedimiento de recuperación de acceso.
 
+## Avistamientos y traslados a refugios
+
+Actualiza la base con `npm run db:migrate`. En **Avistamientos → Registrar avistamiento** se adjuntan fotos, fecha, hora aproximada opcional, ubicación y señas del animal. Si ya fue trasladado, el autor puede asociar un refugio autorizado en el formulario inicial o al editarlo. La recepción se confirma desde **Mi refugio**. Las cuentas vinculadas pueden coordinar por mensajes privados en el detalle del avistamiento.
+
+El análisis sugiere similitudes y avisa a los propietarios. Sin Gemini usa ubicación, fechas y atributos locales, incluidas señas comparables en la descripción. Con `GEMINI_API_KEY` también puede comparar las fotos. Indicar una posible identificación deja la desaparición activa. El propietario confirma la recuperación en el estado de su reporte.
+
 ## Despliegue
 - **Base de datos:** Neon → crear proyecto → copiar la *connection string* (incluye `?sslmode=require`).
 - **Backend:** Render → New → Blueprint con `render.yaml`, o Web Service con raíz `server`, build `npm install`,

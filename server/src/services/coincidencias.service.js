@@ -10,11 +10,12 @@ const { TIPO, ESTADO, CRITERIO, ESTADO_COINCIDENCIA, TIPO_NOTIFICACION } = requi
 const UMBRAL = 60; // porcentaje mínimo para sugerir una coincidencia
 const PESOS = { [CRITERIO.RAZA]: 15, [CRITERIO.COLOR]: 25, [CRITERIO.TAMANO]: 10, [CRITERIO.UBICACION]: 25, [CRITERIO.FECHA]: 25 };
 const PESO_IMAGEN = 40;
+const PESO_SENAS = 10;
 
 const DATOS_REPORTE = `
   SELECT p.id_publicacion, p.id_usuario, p.id_tipo, p.id_estado, p.id_especie, p.id_raza, p.id_tamano,
-         p.nombre_animal, rz.nombre AS raza, r.fecha_evento,
-         u.latitud, u.longitud, u.id_sector, s.id_canton, c.id_provincia,
+         p.nombre_animal, p.descripcion, rz.nombre AS raza, r.fecha_evento, to_char(r.hora_evento, 'HH24:MI') AS hora_evento,
+         u.latitud, u.longitud, u.id_sector, s.id_canton, c.id_provincia, s.nombre AS sector, c.nombre AS canton,
          COALESCE((SELECT array_agg(pc.id_color) FROM publicacion_color pc WHERE pc.id_publicacion = p.id_publicacion), '{}') AS colores
   FROM publicacion p
   JOIN reporte r ON r.id_publicacion = p.id_publicacion
@@ -25,6 +26,12 @@ const DATOS_REPORTE = `
 
 const esMestizo = (raza) => !raza || /mestizo|no aplica/i.test(raza);
 const dias = (a, b) => (new Date(b) - new Date(a)) / 86400000;
+
+// RF-09 y RNF-17: compara solo descriptores visibles en texto, localmente y sin enviar las notas al proveedor de IA.
+function senasComparables(descripcion = '') {
+  const normalizada = descripcion.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+  return [...normalizada.matchAll(/\b(collar|arnes|mancha|cicatriz|cola|oreja)\s+(roj[oa]|azul|verdes?|amarill[oa]|negr[oa]|blanc[oa]|gris|marron|cafe|cort[oa]|larg[oa]|doblad[oa])\b/g)];
+}
 
 // Devuelve los puntajes (0-100) de cada criterio, o null si no puede ser la misma mascota
 function puntuarAtributos(perdida, hallada) {
@@ -58,6 +65,13 @@ function puntuarAtributos(perdida, hallada) {
   else if (diferencia <= 3) p[CRITERIO.FECHA] = 100;
   else p[CRITERIO.FECHA] = Math.max(0, Math.round(100 - ((diferencia - 3) / 57) * 100));
 
+  const senasHallada = senasComparables(hallada.descripcion);
+  const senasPerdida = senasComparables(perdida.descripcion).filter(([, rasgo]) => senasHallada.some(([, otro]) => rasgo === otro));
+  if (senasPerdida.length) {
+    const iguales = senasPerdida.filter(([, rasgo, valor]) => senasHallada.some(([, otro, detalle]) => rasgo === otro && valor === detalle));
+    p[CRITERIO.SENAS] = Math.round(100 * iguales.length / senasPerdida.length);
+  }
+
   return p;
 }
 
@@ -71,6 +85,10 @@ function porcentajeTotal(puntajes) {
   if (puntajes[CRITERIO.IMAGEN] !== undefined) {
     suma += puntajes[CRITERIO.IMAGEN] * PESO_IMAGEN;
     pesos += PESO_IMAGEN;
+  }
+  if (puntajes[CRITERIO.SENAS] !== undefined) {
+    suma += puntajes[CRITERIO.SENAS] * PESO_SENAS;
+    pesos += PESO_SENAS;
   }
   return Math.round((suma / pesos) * 100) / 100;
 }
@@ -110,6 +128,7 @@ async function analizarReporte(idPublicacion) {
   for (const candidato of candidatos) {
     const perdida = esPerdida ? reporte : candidato;
     const hallada = esPerdida ? candidato : reporte;
+    if (dias(perdida.fechaEvento, hallada.fechaEvento) < -1) continue;
     const puntajes = puntuarAtributos(perdida, hallada);
     if (!puntajes) continue;
 
@@ -129,6 +148,10 @@ async function analizarReporte(idPublicacion) {
     if (porcentaje < UMBRAL) continue;
 
     const creada = await transaccion(async (tx) => {
+      const vigentes = await tx.consulta(`SELECT id_publicacion, id_estado FROM publicacion
+        WHERE id_publicacion = ANY($1::int[]) ORDER BY id_publicacion FOR SHARE`, [[perdida.idPublicacion, hallada.idPublicacion]]);
+      if (!vigentes.some((p) => p.idPublicacion === perdida.idPublicacion && p.idEstado === ESTADO.DESAPARECIDA_PENDIENTE)
+        || !vigentes.some((p) => p.idPublicacion === hallada.idPublicacion && p.idEstado === ESTADO.ENCONTRADA_PENDIENTE)) return false;
       const [fila] = await tx.consulta(
         `INSERT INTO coincidencia (id_desaparecida, id_encontrada, porcentaje) VALUES ($1, $2, $3)
          ON CONFLICT (id_desaparecida, id_encontrada) DO UPDATE
@@ -146,11 +169,15 @@ async function analizarReporte(idPublicacion) {
         );
       }
       if (fila.esNueva) {
+        const [custodia] = await tx.consulta(`SELECT r.nombre FROM custodia_refugio c JOIN refugio r USING (id_refugio) WHERE c.id_publicacion = $1`, [hallada.idPublicacion]);
+        const cuando = [hallada.fechaEvento, hallada.horaEvento].filter(Boolean).join(' ');
+        const donde = custodia ? `Posible traslado a ${custodia.nombre}. ` : '';
+        const mensaje = `Posible avistamiento de ${perdida.nombreAnimal || 'tu mascota'} (${Math.round(porcentaje)} % de similitud). ${donde}${hallada.sector}, ${hallada.canton} · ${cuando}.`;
         await tx.consulta(
           `INSERT INTO notificacion (id_usuario, id_publicacion, id_tipo_notificacion, mensaje) VALUES ($1, $2, $3, $4)`,
           [
             perdida.idUsuario, perdida.idPublicacion, TIPO_NOTIFICACION.COINCIDENCIA,
-            `La IA encontró un animal parecido a ${perdida.nombreAnimal || 'tu mascota'} (${Math.round(porcentaje)} % de similitud)`,
+            mensaje.slice(0, 255),
           ],
         );
       }

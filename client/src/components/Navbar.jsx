@@ -40,7 +40,7 @@ function Notificaciones() {
     if (!n.leida) await api.patch(`/notificaciones/${n.id}/leida`).catch(() => {});
     setAbierto(false);
     cargar();
-    if (n.idTipo === 2) navegar('/coincidencias');
+    if (n.idTipo === 2) navegar(n.idPublicacion ? `/coincidencias?publicacion=${n.idPublicacion}` : '/coincidencias');
     else if (n.tipo === 'Seguridad') navegar('/perfil/seguridad');
     else if (n.idPublicacion) navegar(`/publicaciones/${n.idPublicacion}`);
   };
@@ -128,7 +128,7 @@ export default function Navbar({ cabeceraPropia = false }) {
         <div className="figma-enlaces-nav">
           <NavLink to="/" end className={claseEnlace}>Inicio</NavLink>
           <NavLink to="/perdidas" className={claseEnlace}>Perdidas</NavLink>
-          <NavLink to="/halladas" className={claseEnlace}>Halladas</NavLink>
+          <NavLink to="/halladas" className={claseEnlace}>Avistamientos</NavLink>
           <NavLink to="/adopcion" className={claseEnlace}>Adopción</NavLink>
           {usuario && <NavLink to="/mis-reportes" className={claseEnlace}>Mis reportes</NavLink>}
         </div>
@@ -166,7 +166,7 @@ export function NavInferior() {
       <Link to="/reportar" className="figma-mas-nav" aria-label="Reportar mascota">
         <span><IconoFigma nombre="mas" /></span>
       </Link>
-      {item('/halladas', 'pataMenu', 'Halladas')}
+      {item('/halladas', 'pataMenu', 'Avistamientos')}
       {item('/adopcion', 'adopcion', 'Adopción')}
     </nav>
   );

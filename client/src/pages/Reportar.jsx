@@ -17,7 +17,7 @@ const TIPOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 
 
 const PESTANAS = [
   { tipo: 1, texto: 'Perdida', consejo: 'Una foto reciente y nítida, de frente y de cuerpo entero, aumenta las posibilidades de encontrarla.' },
-  { tipo: 2, texto: 'Encontrada', consejo: 'Fotografía al animal desde varios ángulos y anota señas particulares: collar, manchas o cicatrices.' },
+  { tipo: 2, texto: 'Avistamiento', consejo: 'Fotografía al animal desde varios ángulos y anota señas particulares como un collar, manchas o cicatrices.' },
   { tipo: 3, texto: 'Adopción', consejo: 'Cuenta su carácter, su estado de salud y con qué tipo de familia se llevaría mejor.' },
 ];
 
@@ -37,7 +37,9 @@ export default function Reportar() {
   const [datos, setDatos] = useState({
     nombreAnimal: '', idEspecie: '1', idRaza: '', idTamano: '', colores: [], descripcion: '', fechaEvento: hoy(),
     estadoSalud: '', telefono: '', whatsapp: usuario?.telefono || '', correoContacto: '',
+    idRefugioCustodia: '', notasCustodia: '',
   });
+  const [horaEvento, setHoraEvento] = useState('');
   const [ubicacion, setUbicacion] = useState(ubicacionDesdeApi(null));
   const [existentes, setExistentes] = useState([]);
   const [quitar, setQuitar] = useState([]);
@@ -45,6 +47,18 @@ export default function Reportar() {
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [cargando, setCargando] = useState(Boolean(id));
+  const [refugios, setRefugios] = useState(null);
+  const [errorRefugios, setErrorRefugios] = useState('');
+  const [custodia, setCustodia] = useState(null);
+
+  useEffect(() => {
+    if (tipo !== 2) return;
+    let vigente = true;
+    setErrorRefugios('');
+    api.get('/refugios').then((lista) => { if (vigente) setRefugios(lista); })
+      .catch((e) => { if (vigente) setErrorRefugios(e.message); });
+    return () => { vigente = false; };
+  }, [tipo]);
 
   useEffect(() => {
     if (!id) return;
@@ -56,7 +70,10 @@ export default function Reportar() {
         idTamano: p.idTamano ? String(p.idTamano) : '', colores: p.colores.map((c) => c.id), descripcion: p.descripcion,
         fechaEvento: p.fechaEvento || hoy(), estadoSalud: p.estadoSalud || '',
         telefono: contacto('Teléfono'), whatsapp: contacto('WhatsApp'), correoContacto: contacto('Correo'),
+        idRefugioCustodia: String(p.custodia?.idRefugio || ''), notasCustodia: p.notasCustodia || '',
       });
+      setHoraEvento(p.horaEvento || '');
+      setCustodia(p.custodia);
       if (p.idTipo !== 3) setUbicacion(ubicacionDesdeApi(p.ubicacion));
       setExistentes(p.multimedia);
       setCargando(false);
@@ -106,8 +123,14 @@ export default function Reportar() {
 
     const f = new FormData();
     f.append('tipo', tipo);
-    for (const [k, v] of Object.entries(datos)) if (k !== 'colores') f.append(k, v);
-    f.append('colores', datos.colores.join(','));
+    const { colores, idRefugioCustodia, notasCustodia, ...camposReporte } = datos;
+    for (const [k, v] of Object.entries(camposReporte)) f.append(k, v);
+    f.append('colores', colores.join(','));
+    if (tipo === 2) {
+      f.append('horaEvento', e.currentTarget.elements.horaEvento.value);
+      f.append('idRefugioCustodia', idRefugioCustodia);
+      f.append('notasCustodia', idRefugioCustodia ? notasCustodia : '');
+    }
     if (tipo !== 3) for (const [k, v] of Object.entries(ubicacion)) if (v !== null && v !== undefined) f.append(k, v);
     if (quitar.length) f.append('quitarArchivos', quitar.join(','));
     nuevos.forEach((n) => f.append('archivos', n.archivo));
@@ -146,6 +169,7 @@ export default function Reportar() {
         </div>
       )}
       {!id && !puedeAdopcion && <p className="mt-2 text-xs text-suave">Las adopciones las publican refugios y fundaciones autorizados.</p>}
+      {tipo === 2 && <p className="mt-3 max-w-2xl text-sm text-suave">¿Viste un animal parecido a una mascota perdida? Registra el avistamiento. Si la comparación sugiere una coincidencia, avisaremos a su propietario. El reporte de desaparición seguirá activo hasta que su propietario confirme la recuperación.</p>}
 
       <form onSubmit={enviar} className="figma-formulario-reporte">
         {error && <div className="figma-error-reporte"><Alerta>{error}</Alerta></div>}
@@ -202,7 +226,7 @@ export default function Reportar() {
           ) : (
             <>
               <div>
-                <span className="etiqueta">{tipo === 1 ? 'Último lugar donde fue vista' : 'Lugar donde la encontraste'}</span>
+                <span className="etiqueta">{tipo === 1 ? 'Último lugar donde fue vista' : 'Lugar del avistamiento'}</span>
                 <details className="figma-detalles-campo" onInvalid={(e) => { e.currentTarget.open = true; }}>
                   <summary className="input">
                     {[catalogos.sectores.find((s) => s.id === Number(ubicacion.idSector))?.nombre,
@@ -211,9 +235,12 @@ export default function Reportar() {
                   <div className="mt-3"><SelectorUbicacion valor={ubicacion} alCambiar={setUbicacion} /></div>
                 </details>
               </div>
-              <div className="sm:w-1/2">
-                <label className="etiqueta" htmlFor="fecha">{tipo === 1 ? 'Fecha de la desaparición' : 'Fecha del hallazgo'}</label>
-                <input id="fecha" type="date" required max={hoy()} className="input" {...campo('fechaEvento')} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div><label className="etiqueta" htmlFor="fecha">{tipo === 1 ? 'Fecha de la desaparición' : 'Fecha del avistamiento'}</label>
+                  <input id="fecha" type="date" required max={hoy()} className="input" {...campo('fechaEvento')} /></div>
+                {tipo === 2 && <div><label className="etiqueta" htmlFor="hora">Hora aproximada (opcional)</label>
+                  <input id="hora" name="horaEvento" type="time" className="input" defaultValue={horaEvento}
+                    onInput={(e) => setHoraEvento(e.currentTarget.value)} /></div>}
               </div>
             </>
           )}
@@ -222,6 +249,25 @@ export default function Reportar() {
             <label className="etiqueta" htmlFor="descripcion">Descripción y señas particulares</label>
             <textarea id="descripcion" required rows={4} maxLength={2000} className="input" placeholder="Collar rojo, mancha blanca en el pecho…" {...campo('descripcion')} />
           </div>
+
+          {tipo === 2 && (
+            <fieldset className="space-y-2 rounded-xl border border-borde p-3">
+              <legend className="etiqueta px-1">Traslado a un refugio (opcional)</legend>
+              <p className="text-xs text-suave">Selecciona un refugio solo si el animal ya fue trasladado. El refugio podrá confirmar la recepción.</p>
+              <Alerta>{errorRefugios}</Alerta>
+              <label className="etiqueta" htmlFor="custodia">Refugio que recibió al animal</label>
+              <select id="custodia" className="input" disabled={Boolean(custodia?.confirmadaEn) || !refugios} {...campo('idRefugioCustodia')}>
+                <option value="">Sin traslado a un refugio</option>
+                {custodia && !refugios?.some((r) => r.id === custodia.idRefugio) && <option value={custodia.idRefugio}>{custodia.nombre}</option>}
+                {refugios?.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+              </select>
+              {refugios?.length === 0 && <p className="text-xs text-suave">Por ahora no hay refugios disponibles para asociar.</p>}
+              {datos.idRefugioCustodia && <div>
+                <label className="etiqueta" htmlFor="notas-custodia">Notas de entrega para las partes vinculadas</label>
+                <textarea id="notas-custodia" className="input" maxLength={500} rows={2} {...campo('notasCustodia')} />
+              </div>}
+            </fieldset>
+          )}
 
           <fieldset>
             <legend className="etiqueta">Contacto (al menos uno; solo lo verán usuarios registrados)</legend>
@@ -234,7 +280,7 @@ export default function Reportar() {
 
           <div className="figma-acciones-reporte">
             <button type="button" className="btn btn-secundario" onClick={() => navegar(-1)}>Cancelar</button>
-            <button className="btn btn-primario px-8" disabled={enviando}>{enviando ? (catalogos.iaDisponible ? 'Validando fotos con IA…' : 'Publicando…') : id ? 'Guardar cambios' : 'Publicar reporte'}</button>
+            <button className="btn btn-primario px-8" disabled={enviando}>{enviando ? (catalogos.iaDisponible ? 'Validando fotos con IA…' : 'Publicando…') : id ? 'Guardar cambios' : tipo === 2 ? 'Registrar avistamiento' : 'Publicar reporte'}</button>
           </div>
         </div>
 
@@ -269,8 +315,8 @@ export default function Reportar() {
           </div>
           {tipo !== 3 && (
             <div className="rounded-2xl border border-violeta/30 bg-violeta/5 p-4 text-sm text-suave">
-              <p className="font-bold text-lavanda">Coincidencias con IA</p>
-              <p className="mt-1">Al publicar, compararemos tu reporte con los {tipo === 1 ? 'animales encontrados' : 'reportes de mascotas perdidas'} y te avisaremos si hay uno parecido. <Link to="/coincidencias" className="text-lavanda underline">Ver coincidencias</Link></p>
+              <p className="font-bold text-lavanda">Posibles coincidencias</p>
+              <p className="mt-1">{tipo === 1 ? 'Compararemos tu reporte con los avistamientos y te avisaremos si hay alguna coincidencia.' : 'Compararemos el avistamiento con los reportes de mascotas perdidas y avisaremos a sus propietarios si hay similitudes.'} {catalogos.iaDisponible ? 'La comparación de fotos complementa los demás criterios.' : 'La comparación usa los datos del animal y del reporte.'} <Link to="/coincidencias" className="text-lavanda underline">Ver coincidencias</Link></p>
             </div>
           )}
         </aside>

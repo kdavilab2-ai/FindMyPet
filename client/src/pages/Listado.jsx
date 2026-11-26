@@ -8,7 +8,7 @@ import { Alerta, Cargando, ESTILO_TIPO, Vacio } from '../components/Comunes';
 
 const DESCRIPCION = {
   1: 'Mascotas que sus familias están buscando. Si viste alguna, contacta a su dueño.',
-  2: 'Animales que alguien encontró en la calle. ¿Reconoces a tu mascota?',
+  2: '¿Viste un animal parecido a una mascota perdida? Registra un avistamiento para comparar rasgos y avisar al propietario si hay una posible coincidencia.',
   3: 'Animales rescatados por refugios y fundaciones que buscan un nuevo hogar.',
 };
 
@@ -75,12 +75,12 @@ export default function Listado({ idTipo }) {
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-bold ${estilo.clase}`}>{estilo.plural}</span>
-          <h1 className="titulo-pagina mt-2">{{ 1: 'Mascotas perdidas', 2: 'Animales encontrados', 3: 'Animales en adopción' }[idTipo]}</h1>
+          <h1 className="titulo-pagina mt-2">{{ 1: 'Mascotas perdidas', 2: 'Avistamientos de mascotas', 3: 'Animales en adopción' }[idTipo]}</h1>
           <p className="mt-1 text-sm text-suave">{DESCRIPCION[idTipo]}</p>
         </div>
         {idTipo === 3
           ? <Link to="/refugios" className="btn btn-secundario">Ver refugios</Link>
-          : <Link to={usuario ? `/reportar?tipo=${idTipo}` : '/login'} className="btn btn-primario">+ {idTipo === 1 ? 'Reportar mascota perdida' : 'Reportar animal encontrado'}</Link>}
+          : <Link to={usuario ? `/reportar?tipo=${idTipo}` : '/login'} state={usuario ? undefined : { desde: `/reportar?tipo=${idTipo}` }} className="btn btn-primario">+ {idTipo === 1 ? 'Reportar mascota perdida' : 'Registrar avistamiento'}</Link>}
       </div>
       <div className="panel mb-5 p-4"><Filtros idTipo={idTipo} params={params} cambiar={cambiar} /></div>
       <Alerta>{error}</Alerta>

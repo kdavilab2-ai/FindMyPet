@@ -209,6 +209,27 @@ CREATE TABLE IF NOT EXISTS reporte (
   id_ubicacion   INT NOT NULL REFERENCES ubicacion(id_ubicacion),
   fecha_evento   DATE NOT NULL
 );
+ALTER TABLE reporte ADD COLUMN IF NOT EXISTS hora_evento TIME(0);
+
+CREATE TABLE IF NOT EXISTS custodia_refugio (
+  id_publicacion INT PRIMARY KEY REFERENCES reporte(id_publicacion) ON DELETE CASCADE,
+  id_refugio INT NOT NULL REFERENCES refugio(id_refugio) ON DELETE CASCADE,
+  notas VARCHAR(500),
+  informada_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  confirmada_en TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_custodia_refugio ON custodia_refugio(id_refugio, informada_en DESC);
+
+CREATE TABLE IF NOT EXISTS mensaje_avistamiento (
+  id_mensaje SERIAL PRIMARY KEY,
+  id_publicacion INT NOT NULL REFERENCES custodia_refugio(id_publicacion) ON DELETE CASCADE,
+  id_remitente INT NOT NULL REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+  id_destinatario INT NOT NULL REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+  contenido VARCHAR(500) NOT NULL,
+  fecha TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (id_remitente <> id_destinatario)
+);
+CREATE INDEX IF NOT EXISTS idx_mensaje_avistamiento ON mensaje_avistamiento(id_publicacion, id_mensaje DESC);
 
 CREATE TABLE IF NOT EXISTS adopcion (
   id_publicacion INT PRIMARY KEY REFERENCES publicacion(id_publicacion) ON DELETE CASCADE,
@@ -342,12 +363,12 @@ ON CONFLICT DO NOTHING;
 INSERT INTO tipo_multimedia VALUES (1, 'Imagen'), (2, 'Video') ON CONFLICT DO NOTHING;
 INSERT INTO tipo_contacto VALUES (1, 'Teléfono'), (2, 'WhatsApp'), (3, 'Correo') ON CONFLICT DO NOTHING;
 INSERT INTO tipo_notificacion VALUES
-  (1, 'Alerta de proximidad'), (2, 'Coincidencia IA'), (3, 'Interés en adopción'), (4, 'Moderación'), (5, 'Cuenta'), (6, 'Seguridad')
+  (1, 'Alerta de proximidad'), (2, 'Coincidencia IA'), (3, 'Interés en adopción'), (4, 'Moderación'), (5, 'Cuenta'), (6, 'Seguridad'), (7, 'Avistamiento')
 ON CONFLICT DO NOTHING;
 INSERT INTO tipo_accion VALUES (1, 'Eliminar'), (2, 'Advertencia'), (3, 'Actualizar') ON CONFLICT DO NOTHING;
 INSERT INTO estado_coincidencia VALUES (1, 'Sugerida'), (2, 'Confirmada'), (3, 'Descartada') ON CONFLICT DO NOTHING;
 INSERT INTO criterio_ia VALUES
-  (1, 'Especie'), (2, 'Raza'), (3, 'Color'), (4, 'Tamaño'), (5, 'Ubicación'), (6, 'Fecha'), (7, 'Imagen')
+  (1, 'Especie'), (2, 'Raza'), (3, 'Color'), (4, 'Tamaño'), (5, 'Ubicación'), (6, 'Fecha'), (7, 'Imagen'), (8, 'Señas particulares')
 ON CONFLICT DO NOTHING;
 INSERT INTO estado_solicitud VALUES (1, 'Abierta'), (2, 'Cerrada') ON CONFLICT DO NOTHING;
 
