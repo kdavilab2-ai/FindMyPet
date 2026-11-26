@@ -5,6 +5,7 @@ const { readFile } = require('node:fs/promises');
 const { join } = require('node:path');
 const { pool, una, consulta } = require('../src/lib/db');
 const { analizarReporte } = require('../src/services/coincidencias.service');
+const { cargarAvistamientosDemo, agregarAvistamientosDemo } = require('./seed-avistamientos');
 
 const diasAtras = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
 const id = async (tabla, columna, nombre, extra = '') =>
@@ -72,6 +73,7 @@ async function main() {
   const fotos = Object.fromEntries(await Promise.all(nombresFotos.map(async (nombre) => [
     nombre, await readFile(join(__dirname, 'fotos-demo', `${nombre}.webp`)),
   ])));
+  const avistamientosDemo = await cargarAvistamientosDemo();
   await pool.query(`TRUNCATE usuario, ubicacion, publicacion, coincidencia, moderacion, notificacion,
                     valoracion, solicitud_donacion, donacion RESTART IDENTITY CASCADE`);
 
@@ -144,6 +146,7 @@ async function main() {
 
   // Análisis de coincidencias inicial (Rocky vs el perro encontrado en Las Piñas)
   const nuevas = await analizarReporte(rocky);
+  await agregarAvistamientosDemo(avistamientosDemo);
 
   console.log('Datos de demostración creados. Contraseña de todas las cuentas: Clave1234');
   console.log('  admin@findmypet.test (Administrador) · ana@findmypet.test y luis@findmypet.test (Ciudadanos)');

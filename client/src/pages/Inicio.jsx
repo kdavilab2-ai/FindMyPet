@@ -4,11 +4,11 @@ import { api } from '../services/api';
 import { useCatalogos } from '../context/CatalogosContext';
 import TarjetaMascota from '../components/TarjetaMascota';
 import IconoFigma from '../components/IconoFigma';
-import { Alerta, Cargando, ESTILO_TIPO, Vacio } from '../components/Comunes';
+import { Alerta, CLASE_RECUPERADA, Cargando, ESTILO_TIPO, Vacio } from '../components/Comunes';
 
 const RESUMEN = [
   { ...ESTILO_TIPO[1], campo: 'desaparecidas' },
-  { ruta: '/recuperados', plural: 'Recuperados', clase: 'bg-adopcion text-white', campo: 'recuperadas' },
+  { ruta: '/recuperados', plural: 'Recuperados', clase: CLASE_RECUPERADA, campo: 'recuperadas' },
   { ...ESTILO_TIPO[3], campo: 'adopcion' },
 ];
 const normalizar = (texto) => texto.toLocaleLowerCase('es').normalize('NFD').replace(/\p{Diacritic}/gu, '');

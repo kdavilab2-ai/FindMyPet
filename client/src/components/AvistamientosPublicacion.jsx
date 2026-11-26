@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, urlArchivo } from '../services/api';
-import { Alerta, formatoFecha } from './Comunes';
+import { Alerta, InsigniaTipo, formatoFecha } from './Comunes';
 
 export default function AvistamientosPublicacion({ publicacion, avistamientoPublicado }) {
   const [datos, setDatos] = useState([]);
@@ -50,7 +50,10 @@ export default function AvistamientosPublicacion({ publicacion, avistamientoPubl
           <li key={v.id} className="space-y-3 rounded-xl border border-borde bg-fondo/40 p-3 sm:p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="text-sm font-semibold">{v.autor || 'Avistamiento de la comunidad'}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <InsigniaTipo idTipo={2} />
+                  <p className="text-sm font-semibold">{v.autor || 'Aporte de la comunidad'}</p>
+                </div>
                 <p className="text-xs text-suave">{[formatoFecha(v.fechaEvento), v.horaEvento, v.sector, v.canton].filter(Boolean).join(' · ')}</p>
               </div>
               <Link to={`/publicaciones/${v.id}`} className="text-sm text-lavanda underline">Ver avistamiento</Link>

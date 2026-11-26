@@ -166,6 +166,7 @@ test('publica observaciones y fotos en la ficha de origen con permisos de contac
   const origen = (await publicar(propietario.token, { nombreAnimal: 'Publicación del hallazgo' })).body;
   const otraFicha = (await publicar(propietario.token, { nombreAnimal: 'Otra mascota perdida' })).body;
   const general = await publicarAvistamiento({ descripcion: 'Avistamiento general de la comunidad' });
+  expect((await detalle(origen.id)).body.tieneAvistamientos).toBe(false);
   const datos = {
     idDesaparicionOrigen: origen.id, descripcion: 'Animal visto junto al parque, caminando al norte', horaEvento: '10:30',
   };
@@ -177,6 +178,10 @@ test('publica observaciones y fotos en la ficha de origen con permisos de contac
     idRefugioCustodia: refugio.usuario.refugio.id, notasCustodia: 'Información de entrega reservada',
   });
   expect(segundo.status).toBe(201);
+  expect((await detalle(origen.id)).body.tieneAvistamientos).toBe(true);
+  expect((await detalle(otraFicha.id)).body.tieneAvistamientos).toBe(false);
+  const perdidas = await request(app).get('/api/publicaciones').query({ tipo: 1, estado: 1, q: origen.nombreAnimal });
+  expect(perdidas.body.datos).toEqual([expect.objectContaining({ id: origen.id, tieneAvistamientos: true })]);
   const ruta = `/api/publicaciones/${origen.id}/avistamientos`;
   const visitas = await request(app).get(ruta);
   expect(visitas.status).toBe(200);

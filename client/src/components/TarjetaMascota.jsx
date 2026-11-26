@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { urlArchivo } from '../services/api';
-import { ESTILO_TIPO, IconoEspecie, InsigniaEstado, InsigniaTipo, formatoFecha, textoUbicacion } from './Comunes';
+import { ESTILO_TIPO, IconoEspecie, InsigniaEstado, InsigniaTipo, formatoFecha, muestraAvistamiento, textoUbicacion } from './Comunes';
 import IconoFigma from './IconoFigma';
 
 export function FotoMascotaFigma({ p, className = '' }) {
@@ -27,6 +27,7 @@ export default function TarjetaMascota({ p, variante }) {
         {!recuperada && <span className={`figma-tipo figma-tipo-${p.idTipo}`}>{ESTILO_TIPO[p.idTipo].texto}</span>}
         <div className="figma-tarjeta-texto">
           <h3>{p.nombreAnimal || 'Sin nombre'} · {p.especie}</h3>
+          {muestraAvistamiento(p) && <InsigniaTipo idTipo={2} />}
           {resuelta && <InsigniaEstado idEstado={p.idEstado} estado={p.estado} />}
           {rasgos && <p>{rasgos}</p>}
           {(lugar || p.fechaEvento) && <p className="figma-lugar"><IconoFigma nombre="ubicacion" />
@@ -54,6 +55,7 @@ export default function TarjetaMascota({ p, variante }) {
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3.5">
         <h3 className="text-base font-bold group-hover:text-lavanda">{p.nombreAnimal || 'Sin nombre'} · {p.especie}</h3>
+        {muestraAvistamiento(p) && <div><InsigniaTipo idTipo={2} /></div>}
         <p className="text-xs text-suave">{rasgos}</p>
         <p className="mt-auto flex items-center gap-1 pt-1 text-xs text-suave">
           <span className="text-perdida" aria-hidden="true">●</span>

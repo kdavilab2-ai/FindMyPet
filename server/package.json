@@ -13,7 +13,8 @@
     "test": "jest --runInBand",
     "db:migrate": "node db/migrar.js",
     "db:reset": "node db/migrar.js --reiniciar",
-    "seed": "node db/seed.js"
+    "seed": "node db/seed.js",
+    "seed:avistamientos": "node db/seed-avistamientos.js"
   },
   "license": "ISC",
   "dependencies": {

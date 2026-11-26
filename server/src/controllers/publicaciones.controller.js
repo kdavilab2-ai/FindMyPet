@@ -22,6 +22,9 @@ const SELECT_PUBLICACION = `
          p.id_especie, e.nombre AS especie, p.id_raza, rz.nombre AS raza, p.id_tamano, t.nombre AS tamano,
          p.nombre_animal, p.descripcion, p.fecha_creacion, r.fecha_evento, to_char(r.hora_evento, 'HH24:MI') AS hora_evento,
          r.id_desaparicion_origen, a.estado_salud,
+         p.id_tipo = ${TIPO.DESAPARECIDA} AND EXISTS (
+           SELECT 1 FROM reporte av WHERE av.id_desaparicion_origen = p.id_publicacion
+         ) AS tiene_avistamientos,
          rf.id_refugio, rf.nombre AS refugio,
          CASE WHEN cr.id_refugio IS NOT NULL THEN json_build_object('idRefugio', cr.id_refugio, 'nombre', rc.nombre,
            'informadaEn', cr.informada_en, 'confirmadaEn', cr.confirmada_en) END AS custodia,

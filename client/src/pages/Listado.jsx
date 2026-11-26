@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { useCatalogos } from '../context/CatalogosContext';
 import { useAuth } from '../context/AuthContext';
 import TarjetaMascota from '../components/TarjetaMascota';
-import { Alerta, Cargando, ESTILO_TIPO, Vacio } from '../components/Comunes';
+import { Alerta, CLASE_RECUPERADA, Cargando, ESTILO_TIPO, Vacio } from '../components/Comunes';
 
 const DESCRIPCION = {
   1: 'Mascotas que sus familias están buscando. Si viste alguna, contacta a su dueño.',
@@ -82,7 +82,7 @@ export default function Listado({ idTipo, estadoFijo }) {
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-bold ${recuperados ? 'bg-adopcion text-white' : estilo.clase}`}>{recuperados ? 'Recuperados' : estilo.plural}</span>
+          <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-bold ${recuperados ? CLASE_RECUPERADA : estilo.clase}`}>{recuperados ? 'Recuperados' : estilo.plural}</span>
           <h1 className="titulo-pagina mt-2">{recuperados ? 'Mascotas recuperadas' : idTipo === 1 ? 'Mascotas perdidas' : 'Animales en adopción'}</h1>
           <p className="mt-1 text-sm text-suave">{recuperados ? 'Mascotas que han vuelto con sus familias.' : DESCRIPCION[idTipo]}</p>
         </div>

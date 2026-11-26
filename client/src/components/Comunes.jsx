@@ -5,11 +5,13 @@ import { useAuth } from '../context/AuthContext';
 // Colores por tipo de caso (guía de Figma): rojo desaparecida, azul encontrada, verde adopción
 export const ESTILO_TIPO = {
   1: { texto: 'Desaparecida', plural: 'Desaparecidas', clase: 'bg-perdida text-white', suave: 'bg-perdida/15 text-perdida border-perdida/40', ruta: '/perdidas' },
-  2: { texto: 'Avistamiento', plural: 'Avistamientos', clase: 'bg-hallada text-white', suave: 'bg-hallada/15 text-hallada border-hallada/40' },
+  2: { texto: 'Avistamiento', plural: 'Avistamientos', clase: 'bg-avistamiento text-fondo', suave: 'bg-avistamiento/15 text-avistamiento border-avistamiento/40' },
   3: { texto: 'En adopción', plural: 'En adopción', clase: 'bg-adopcion text-white', suave: 'bg-adopcion/15 text-adopcion border-adopcion/40', ruta: '/adopcion' },
 };
 
 const ESTADOS_RESUELTOS = [2, 4, 6];
+export const CLASE_RECUPERADA = 'bg-hallada text-fondo';
+export const muestraAvistamiento = (p) => p.idTipo === 1 && p.idEstado === 1 && p.tieneAvistamientos;
 
 export function InsigniaTipo({ idTipo }) {
   const e = ESTILO_TIPO[idTipo];
@@ -17,9 +19,10 @@ export function InsigniaTipo({ idTipo }) {
 }
 
 export function InsigniaEstado({ idEstado, estado }) {
-  const resuelto = ESTADOS_RESUELTOS.includes(idEstado);
+  const color = idEstado === 2 ? `border-hallada ${CLASE_RECUPERADA}`
+    : ESTADOS_RESUELTOS.includes(idEstado) ? 'border-adopcion/40 bg-adopcion/15 text-adopcion' : 'border-ambar/40 bg-ambar/10 text-ambar';
   return (
-    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${resuelto ? 'border-adopcion/40 bg-adopcion/15 text-adopcion' : 'border-ambar/40 bg-ambar/10 text-ambar'}`}>
+    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${color}`}>
       {estado}
     </span>
   );

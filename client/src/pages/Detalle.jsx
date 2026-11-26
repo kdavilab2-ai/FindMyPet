@@ -9,7 +9,7 @@ import ConfirmarRecuperacion from '../components/ConfirmarRecuperacion';
 import EnlacesContacto from '../components/EnlacesContacto';
 import AvistamientosPublicacion from '../components/AvistamientosPublicacion';
 import {
-  Alerta, Cargando, IconoEspecie, InsigniaEstado, InsigniaTipo, Modal, formatoFecha, formatoFechaHora,
+  Alerta, Cargando, IconoEspecie, InsigniaEstado, InsigniaTipo, Modal, formatoFecha, formatoFechaHora, muestraAvistamiento,
 } from '../components/Comunes';
 
 const COLOR_TIPO = { 1: '#F05A5A', 2: '#1E8FFF', 3: '#1FA463' };
@@ -26,7 +26,7 @@ function Dato({ titulo, valor }) {
 
 export default function Detalle() {
   const { id } = useParams();
-  const { state, hash } = useLocation();
+  const { state, hash, key } = useLocation();
   const navegar = useNavigate();
   const { usuario, esAdmin } = useAuth();
   const { catalogos } = useCatalogos();
@@ -43,7 +43,7 @@ export default function Detalle() {
   useEffect(() => { cargar(); }, [cargar]);
   useEffect(() => {
     if (hash === '#avistamientos' && p?.id === Number(id)) document.getElementById('avistamientos')?.scrollIntoView();
-  }, [hash, id, p?.id]);
+  }, [hash, id, key, p?.id]);
 
   if (error && !p) return <div className="mx-auto max-w-5xl px-4 py-8"><Alerta>{error}</Alerta></div>;
   if (!p) return <Cargando />;
@@ -110,6 +110,7 @@ export default function Detalle() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               {p.idEstado !== 2 && <InsigniaTipo idTipo={p.idTipo} />}
+              {muestraAvistamiento(p) && <Link to={`/publicaciones/${p.id}#avistamientos`} aria-label="Ver avistamientos"><InsigniaTipo idTipo={2} /></Link>}
               <InsigniaEstado idEstado={p.idEstado} estado={p.estado} />
             </div>
             <h1 className="mt-3 text-3xl text-lavanda sm:text-4xl">{nombre}</h1>
