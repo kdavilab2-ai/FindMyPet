@@ -106,6 +106,12 @@
 .figma-registro-movil { display: none; }
 .figma-volver { display: none; }
 
+.figma-login { flex: 1; min-height: 0; grid-template-columns: minmax(0, 4fr) minmax(0, 5fr); }
+.figma-login .figma-marca-login { display: inline-flex; flex-direction: column; gap: 14px; font-size: clamp(34px, 4vw, 46px); line-height: 1.1; }
+.figma-login .figma-marca-login .figma-icono { width: clamp(64px, 8vw, 104px); }
+.figma-login .figma-acceso-panel { min-width: 0; padding: clamp(24px, 4vw, 48px); }
+.figma-login .figma-campos-acceso { grid-template-columns: minmax(0, 1fr); overflow-wrap: anywhere; }
+
 .figma-encabezado { position: relative; margin-bottom: 18px; }
 .figma-encabezado h1 { color: var(--color-lavanda); font-size: 34px; font-weight: 700; letter-spacing: normal; line-height: 1.15; }
 .figma-encabezado p { margin-top: 7px; color: var(--suave-figma); font-size: 15px; }
@@ -221,7 +227,6 @@
   .figma-marca-acceso-nombre { margin-top: 12px; font-size: 34px; }
   .figma-lema { color: var(--suave-figma); font-size: 14px; }
   .figma-acceso-panel { width: min(100%, 480px); margin-inline: auto; padding: 0; border: none; background: none; }
-  .figma-login h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .figma-campos-acceso { gap: 14px; margin-top: 24px; }
   .figma-recuperar { padding-block: 6px; }
   .figma-alternar-acceso { margin-top: 25px; }
@@ -261,4 +266,36 @@
   .figma-mascota-reporte:focus-visible > span:not(.figma-foto) { outline: 2px solid var(--color-lavanda); }
   .figma-reporte-tipo,.figma-reporte-fecha { font-size: 12px; }
   .figma-reporte-acciones { gap: 14px; margin-top: 9px; }
+}
+
+@media (max-width: 899px) {
+  .figma-login { display: flex; flex-direction: column; }
+  .figma-login .figma-marca-acceso { padding: clamp(16px, 5dvh, 44px) 16px 0; background: transparent; }
+  .figma-login .figma-marca-login { gap: 10px; font-size: clamp(28px, 6vw, 38px); }
+  .figma-login .figma-marca-login .figma-icono { width: clamp(48px, 11vw, 72px); }
+  .figma-login .figma-marca-acceso dl { display: none; }
+  .figma-login .figma-acceso-contenido { display: block; padding: clamp(16px, 4dvh, 32px) clamp(16px, 5vw, 32px) 28px; }
+  .figma-login .figma-acceso-panel { margin-inline: auto; padding: clamp(16px, 4vw, 28px); border: 1px solid var(--color-borde); background: var(--superficie-figma); }
+  .figma-login .figma-acceso-panel h1 { font-size: clamp(22px, 5vw, 28px); }
+  .figma-login .figma-acceso-subtitulo { display: block; }
+  .figma-login .figma-campos-acceso { margin-top: 18px; }
+  .figma-login .input { font-size: 16px; }
+  .figma-login .figma-alternar-acceso { margin-top: 18px; }
+}
+
+@media (max-width: 599px) and (max-height: 680px) {
+  .figma-login .figma-marca-acceso { padding-top: 16px; }
+  .figma-login .figma-acceso-contenido { padding-block: 16px 20px; }
+  .figma-login .figma-campos-acceso { gap: 10px; margin-top: 14px; }
+  .figma-login .figma-recuperar { padding-block: 2px; }
+  .figma-login .figma-alternar-acceso { margin-top: 14px; }
+}
+
+@media (min-width: 680px) and (max-width: 899px) and (max-height: 520px) and (orientation: landscape) {
+  .figma-login { display: grid; align-items: center; }
+  .figma-login .figma-marca-acceso { padding-block: 16px; }
+  .figma-login .figma-acceso-contenido { padding: 12px 16px; }
+  .figma-login .figma-acceso-panel { padding: 16px; }
+  .figma-login .figma-campos-acceso { gap: 8px; margin-top: 12px; }
+  .figma-login .figma-alternar-acceso { margin-top: 12px; }
 }

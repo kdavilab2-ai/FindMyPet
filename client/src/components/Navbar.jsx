@@ -8,9 +8,9 @@ import IconoFigma from './IconoFigma';
 const claseEnlace = ({ isActive }) =>
   `figma-enlace-nav ${isActive ? 'activo' : ''}`;
 
-export function Logo({ grande = false }) {
+export function Logo({ grande = false, className = '' }) {
   return (
-    <span className={`figma-marca text-white ${grande ? 'figma-marca-grande' : ''}`}>
+    <span className={`figma-marca text-white ${grande ? 'figma-marca-grande' : ''} ${className}`}>
       <IconoFigma nombre="pata" />
       <span>FindMyPet</span>
     </span>

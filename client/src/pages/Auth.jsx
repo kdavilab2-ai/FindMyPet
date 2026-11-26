@@ -7,7 +7,7 @@ import { Logo } from '../components/Navbar';
 import IconoFigma from '../components/IconoFigma';
 import SelectorUbicacion, { ubicacionDesdeApi } from '../components/SelectorUbicacion';
 
-function MarcaAcceso() {
+function MarcaAcceso({ login }) {
   const [totales, setTotales] = useState(null);
   useEffect(() => {
     let vigente = true;
@@ -22,8 +22,10 @@ function MarcaAcceso() {
   }, []);
   return (
     <aside className="figma-marca-acceso">
-      <Link to="/" aria-label="FindMyPet, inicio"><IconoFigma nombre="logo" /></Link>
-      <p className="figma-marca-acceso-nombre">FindMyPet</p>
+      <Link to="/" aria-label="FindMyPet, inicio">
+        {login ? <Logo className="figma-marca-login" /> : <IconoFigma nombre="logo" />}
+      </Link>
+      {!login && <p className="figma-marca-acceso-nombre">FindMyPet</p>}
       <p className="figma-lema">Porque cada mascota merece volver a casa.</p>
       <dl>{['reportes activos', 'reencuentros', 'adopciones'].map((etiqueta, i) => (
         <div key={etiqueta}><dt>{etiqueta}</dt><dd>{totales?.[i] ?? '–'}</dd></div>
@@ -35,7 +37,7 @@ function MarcaAcceso() {
 function Marco({ titulo, subtitulo, children, variante }) {
   if (variante) return (
     <div className={`figma-acceso figma-${variante}`}>
-      <MarcaAcceso />
+      <MarcaAcceso login={variante === 'login'} />
       <div className="figma-acceso-contenido">
         {variante === 'registro' && (
           <div className="figma-registro-movil">

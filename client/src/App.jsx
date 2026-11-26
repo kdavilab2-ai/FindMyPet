@@ -33,10 +33,11 @@ function SubirAlCambiar() {
 
 export default function App() {
   const { pathname, search } = useLocation();
-  const acceso = pathname === '/login' || pathname === '/registro';
+  const login = pathname === '/login';
+  const acceso = login || pathname === '/registro';
   const cabeceraPropia = pathname === '/reportar' || pathname === '/mis-reportes' || /^\/publicaciones\/[^/]+\/editar$/.test(pathname);
   return (
-    <div className={`flex min-h-screen flex-col ${acceso ? '' : 'figma-con-navegacion'}`}>
+    <div className={`flex flex-col ${login ? 'min-h-dvh' : 'min-h-screen'} ${acceso ? '' : 'figma-con-navegacion'}`}>
       <SubirAlCambiar />
       {import.meta.env.DEV && import.meta.env.VITE_DEMOSTRACION === '1' && (
         <p className="border-b border-borde bg-panel px-4 py-2 text-center text-sm text-lavanda">
@@ -44,7 +45,7 @@ export default function App() {
         </p>
       )}
       {!acceso && <Navbar cabeceraPropia={cabeceraPropia} />}
-      <main className="flex-1">
+      <main className={`flex-1 ${login ? 'flex flex-col' : ''}`}>
         <Routes>
           <Route path="/" element={<RutaPrivada><Inicio /></RutaPrivada>} />
           <Route path="/perdidas" element={<Listado key="perdidas" idTipo={1} estadoFijo={1} />} />
