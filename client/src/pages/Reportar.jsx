@@ -30,6 +30,7 @@ export default function Reportar() {
   const { catalogos } = useCatalogos();
   const puedeAdopcion = refugioAutorizado || esAdmin;
   const solicitaTraslado = params.get('traslado') === '1';
+  const referencia = !id && solicitaTraslado ? params.get('referencia') : null;
 
   const [tipoElegido, setTipo] = useState(() => {
     const tipoSolicitado = Number(params.get('tipo'));
@@ -37,7 +38,7 @@ export default function Reportar() {
   });
   const tipo = !id && solicitaTraslado ? 2 : tipoElegido;
   const [datos, setDatos] = useState({
-    nombreAnimal: '', idEspecie: '1', idRaza: '', idTamano: '', colores: [], descripcion: '', fechaEvento: hoy(),
+    nombreAnimal: '', idEspecie: !id && solicitaTraslado ? '' : '1', idRaza: '', idTamano: '', colores: [], descripcion: '', fechaEvento: hoy(),
     estadoSalud: '', telefono: '', whatsapp: usuario?.telefono || '', correoContacto: '',
     idRefugioCustodia: '', notasCustodia: '',
   });
@@ -48,11 +49,13 @@ export default function Reportar() {
   const [nuevos, setNuevos] = useState([]);
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
-  const [cargando, setCargando] = useState(Boolean(id));
+  const [cargando, setCargando] = useState(Boolean(id || referencia));
+  const [especieReferencia, setEspecieReferencia] = useState('');
   const [refugios, setRefugios] = useState(null);
   const [errorRefugios, setErrorRefugios] = useState('');
   const [custodia, setCustodia] = useState(null);
   const informaTraslado = tipo === 2 && (solicitaTraslado || Boolean(custodia));
+  const formularioTraslado = informaTraslado && solicitaTraslado;
 
   useEffect(() => {
     if (!informaTraslado) return;
@@ -62,6 +65,18 @@ export default function Reportar() {
       .catch((e) => { if (vigente) setErrorRefugios(e.message); });
     return () => { vigente = false; };
   }, [informaTraslado]);
+
+  useEffect(() => {
+    if (!referencia) return;
+    let vigente = true;
+    setCargando(true);
+    setEspecieReferencia('');
+    api.get(`/publicaciones/${encodeURIComponent(referencia)}`)
+      .then((p) => { if (vigente && p.idTipo === 1) setEspecieReferencia(String(p.idEspecie)); })
+      .catch(() => { /* El formulario permite indicar el tipo de animal si la ficha no está disponible. */ })
+      .finally(() => { if (vigente) setCargando(false); });
+    return () => { vigente = false; };
+  }, [referencia]);
 
   useEffect(() => {
     if (!id) return;
@@ -116,7 +131,9 @@ export default function Reportar() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    if (datos.descripcion.trim().length < 10) return setError('La descripción debe tener al menos 10 caracteres');
+    if (datos.descripcion.trim().length < 10) {
+      return setError(formularioTraslado ? 'Describe el estado en que encontraste al animal (al menos 10 caracteres)' : 'La descripción debe tener al menos 10 caracteres');
+    }
     const whatsapp = datos.whatsapp.replace(/[ -]/g, '');
     if (!datos.telefono && !whatsapp && !datos.correoContacto) return setError('Ingrese al menos un dato de contacto');
     if (datos.telefono && !/^0\d{9}$/.test(datos.telefono)) return setError('El teléfono debe tener 10 dígitos y empezar con 0');
@@ -129,6 +146,7 @@ export default function Reportar() {
     f.append('tipo', tipo);
     const { colores, idRefugioCustodia, notasCustodia, ...camposReporte } = datos;
     for (const [k, v] of Object.entries(camposReporte)) f.append(k, v);
+    if (formularioTraslado && !id && especieReferencia) f.set('idEspecie', especieReferencia);
     f.append('colores', colores.join(','));
     if (tipo === 2) {
       f.append('horaEvento', e.currentTarget.elements.horaEvento.value);
@@ -161,7 +179,7 @@ export default function Reportar() {
   return (
     <div className="figma-pagina figma-reportar">
       <EncabezadoFigma titulo={informaTraslado && solicitaTraslado ? 'Informar traslado a un refugio' : id ? 'Editar publicación' : 'Reportar mascota'} volverA={id ? '/mis-reportes' : '/'}>
-        {informaTraslado && solicitaTraslado ? 'Registra el avistamiento e indica dónde entregaste al animal.' : 'Completa los datos para difundir el caso.'}
+        {formularioTraslado ? 'Indica dónde encontraste al animal, cómo estaba y a qué refugio lo entregaste.' : 'Completa los datos para difundir el caso.'}
       </EncabezadoFigma>
 
       {!id && !informaTraslado && (
@@ -189,7 +207,7 @@ export default function Reportar() {
           {refugios?.length === 0 && !custodia && <p className="text-sm text-suave">No hay refugios disponibles.</p>}
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="etiqueta" htmlFor="custodia">Refugio que recibió al animal</label>
+              <label className="etiqueta" htmlFor="custodia">{formularioTraslado ? '¿Qué refugio recibió al animal?' : 'Refugio que recibió al animal'}</label>
               <select id="custodia" className="input" required disabled={Boolean(custodia?.confirmadaEn) || !refugios?.length} {...campo('idRefugioCustodia')}>
                 <option value="">Selecciona un refugio</option>
                 {custodia && !refugios?.some((r) => r.id === custodia.idRefugio) && <option value={custodia.idRefugio}>{custodia.nombre}</option>}
@@ -200,14 +218,25 @@ export default function Reportar() {
               <Link to="/refugios" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm text-lavanda underline">Consultar refugios disponibles (nueva pestaña)</Link>
             </div>
             {datos.idRefugioCustodia && <div>
-              <label className="etiqueta" htmlFor="notas-custodia">Notas de entrega (opcional)</label>
-              <textarea id="notas-custodia" className="input" maxLength={500} rows={2} {...campo('notasCustodia')} />
+              <label className="etiqueta" htmlFor="notas-custodia">{formularioTraslado ? '¿Qué más debe saber el refugio? (opcional)' : 'Notas de entrega (opcional)'}</label>
+              <textarea id="notas-custodia" className="input" maxLength={500} rows={2}
+                placeholder={formularioTraslado ? 'Quién lo recibió, qué cuidados le diste o qué necesita ahora.' : undefined} {...campo('notasCustodia')} />
               <p className="text-xs text-suave">Solo las cuentas vinculadas al traslado pueden ver estas notas.</p>
             </div>}
           </div>
         </fieldset>}
         <div className="panel figma-campos-reporte">
-          <div className="figma-rasgos-reporte">
+          {formularioTraslado && <h2 className="text-base text-lavanda">Sobre el hallazgo</h2>}
+          {formularioTraslado && !id && !especieReferencia && (
+            <div>
+              <label className="etiqueta" htmlFor="tipo-animal-traslado">¿Qué tipo de animal encontraste?</label>
+              <select id="tipo-animal-traslado" className="input" required {...campo('idEspecie')}>
+                <option value="">Selecciona un tipo de animal</option>
+                {catalogos.especies.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+              </select>
+            </div>
+          )}
+          {!formularioTraslado && <div className="figma-rasgos-reporte">
             <div className="figma-nombre-reporte">
               <label className="etiqueta" htmlFor="nombre">Nombre de la mascota{tipo === 2 && ' (si lo sabe)'}</label>
               <input id="nombre" className="input" maxLength={60} required={tipo !== 2} placeholder={tipo === 2 ? 'Sin nombre' : 'Ej. Toby'} {...campo('nombreAnimal')} />
@@ -249,7 +278,7 @@ export default function Reportar() {
                 </fieldset>
               </details>
             </div>
-          </div>
+          </div>}
 
           {tipo === 3 ? (
             <div>
@@ -259,7 +288,7 @@ export default function Reportar() {
           ) : (
             <>
               <div>
-                <span className="etiqueta">{tipo === 1 ? 'Último lugar donde fue vista' : 'Lugar del avistamiento'}</span>
+                <span className="etiqueta">{formularioTraslado ? '¿Dónde lo localizaste?' : tipo === 1 ? 'Último lugar donde fue vista' : 'Lugar del avistamiento'}</span>
                 <details className="figma-detalles-campo" onInvalid={(e) => { e.currentTarget.open = true; }}>
                   <summary className="input">
                     {[catalogos.sectores.find((s) => s.id === Number(ubicacion.idSector))?.nombre,
@@ -269,7 +298,7 @@ export default function Reportar() {
                 </details>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div><label className="etiqueta" htmlFor="fecha">{tipo === 1 ? 'Fecha de la desaparición' : 'Fecha del avistamiento'}</label>
+                <div><label className="etiqueta" htmlFor="fecha">{formularioTraslado ? 'Fecha del hallazgo' : tipo === 1 ? 'Fecha de la desaparición' : 'Fecha del avistamiento'}</label>
                   <input id="fecha" type="date" required max={hoy()} className="input" {...campo('fechaEvento')} /></div>
                 {tipo === 2 && <div><label className="etiqueta" htmlFor="hora">Hora aproximada (opcional)</label>
                   <input id="hora" name="horaEvento" type="time" className="input" defaultValue={horaEvento}
@@ -279,8 +308,10 @@ export default function Reportar() {
           )}
 
           <div>
-            <label className="etiqueta" htmlFor="descripcion">Descripción y señas particulares</label>
-            <textarea id="descripcion" required rows={4} maxLength={2000} className="input" placeholder="Collar rojo, mancha blanca en el pecho…" {...campo('descripcion')} />
+            <label className="etiqueta" htmlFor="descripcion">{formularioTraslado ? '¿En qué estado lo encontraste?' : 'Descripción y señas particulares'}</label>
+            <textarea id="descripcion" required rows={4} maxLength={2000} className="input"
+              placeholder={formularioTraslado ? 'Describe su condición y comportamiento. Ej. Estaba asustado, cojeaba y llevaba collar.' : 'Collar rojo, mancha blanca en el pecho…'} {...campo('descripcion')} />
+            {formularioTraslado && <p className="mt-1 text-xs text-suave">Esta descripción aparecerá en el avistamiento. Usa las notas de entrega para los detalles de coordinación.</p>}
           </div>
 
           <fieldset>

@@ -174,7 +174,7 @@ export default function Detalle() {
                   <p className="text-xs text-suave">¿Viste un animal parecido? <Link to="/reportar?tipo=2" className="text-lavanda underline">Registra un avistamiento</Link>. Si encontramos similitudes, avisaremos al propietario.</p>
                   <div className="space-y-2 border-t border-borde pt-3">
                     <p className="text-sm text-suave">Si ya entregaste al animal, informa qué refugio lo recibió para que pueda coordinar con los posibles propietarios.</p>
-                    <Link to="/reportar?tipo=2&traslado=1" className="btn btn-secundario w-full sm:w-auto">Informar traslado a un refugio</Link>
+                    <Link to={`/reportar?tipo=2&traslado=1&referencia=${id}`} className="btn btn-secundario w-full sm:w-auto">Informar traslado a un refugio</Link>
                   </div>
                 </>
               )}
