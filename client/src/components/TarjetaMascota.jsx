@@ -17,13 +17,14 @@ export function FotoMascotaFigma({ p, className = '' }) {
 
 export default function TarjetaMascota({ p, variante }) {
   const resuelta = [2, 4, 6].includes(p.idEstado);
+  const recuperada = p.idTipo === 1 && p.idEstado === 2;
   const lugar = p.idTipo === 3 ? (p.refugio || textoUbicacion(p.ubicacion)) : textoUbicacion(p.ubicacion);
   const rasgos = [p.raza, p.colores?.map((c) => c.nombre).join(', ')].filter(Boolean).join(' · ');
   if (variante === 'inicio') {
     return (
       <Link className="figma-tarjeta" to={`/publicaciones/${p.id}`}>
         <FotoMascotaFigma p={p} />
-        <span className={`figma-tipo figma-tipo-${p.idTipo}`}>{ESTILO_TIPO[p.idTipo].texto}</span>
+        {!recuperada && <span className={`figma-tipo figma-tipo-${p.idTipo}`}>{ESTILO_TIPO[p.idTipo].texto}</span>}
         <div className="figma-tarjeta-texto">
           <h3>{p.nombreAnimal || 'Sin nombre'} · {p.especie}</h3>
           {resuelta && <InsigniaEstado idEstado={p.idEstado} estado={p.estado} />}
@@ -48,7 +49,7 @@ export default function TarjetaMascota({ p, variante }) {
         ) : (
           <div className="flex h-full items-center justify-center"><IconoEspecie especie={p.especie} className="text-6xl" /></div>
         )}
-        <div className="absolute left-2.5 top-2.5"><InsigniaTipo idTipo={p.idTipo} /></div>
+        {!recuperada && <div className="absolute left-2.5 top-2.5"><InsigniaTipo idTipo={p.idTipo} /></div>}
         {resuelta && <div className="absolute right-2.5 top-2.5"><InsigniaEstado idEstado={p.idEstado} estado={p.estado} /></div>}
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3.5">

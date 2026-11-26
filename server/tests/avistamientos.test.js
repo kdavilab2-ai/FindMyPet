@@ -129,10 +129,15 @@ test('solo el propietario confirma la recuperación y un tercero no edita el tra
   for (const [k, v] of Object.entries(await datosBase({ tipo: 2, nombreAnimal: '', idRefugioCustodia: '' }))) retirar.field(k, String(v));
   expect((await retirar).status).toBe(400);
   const recuperar = (u) => request(app).patch(`/api/publicaciones/${perdida.id}/estado`).set(conToken(u.token)).send({ idEstado: 2 });
+  const recuperadas = () => request(app).get('/api/publicaciones').query({ tipo: 1, estado: 2 });
+  expect((await recuperadas()).body.datos).toEqual([]);
+  expect((await request(app).get('/api/publicaciones/resumen')).body.recuperadas).toBe(0);
   expect((await recuperar(refugio)).status).toBe(403);
   expect((await recuperar(propietario)).status).toBe(200);
   expect((await recuperar(propietario)).status).toBe(200);
   expect((await detalle(perdida.id)).body.estado).toBe('Recuperada');
+  expect((await recuperadas()).body.datos).toEqual([expect.objectContaining({ id: perdida.id, idEstado: 2 })]);
+  expect((await request(app).get('/api/publicaciones/resumen')).body.recuperadas).toBe(1);
   expect((await detalle(hallada.id)).body.idEstado).toBe(3);
   expect((await request(app).get('/api/publicaciones?tipo=1&activas=true')).body.datos).toHaveLength(0);
   expect(await analizarReporte(hallada.id)).toBe(0);
@@ -190,8 +195,15 @@ test('publica observaciones y fotos en la ficha de origen con permisos de contac
   expect(pagina.body.datos).toEqual([expect.objectContaining({ id: primero.body.id, autor: 'Usuario P.' })]);
   expect((await request(app).get(`/api/publicaciones/${otraFicha.id}/avistamientos`)).body.datos).toEqual([]);
   expect((await request(app).get(`/api/publicaciones/${general.body.id}/avistamientos`)).status).toBe(404);
+  const recientes = await request(app).get('/api/publicaciones').query({ activas: true, sinAvistamientos: true, q: datos.descripcion });
+  expect(recientes.body).toMatchObject({ total: 0, datos: [] });
+  const hallazgos = await request(app).get('/api/publicaciones').query({ activas: true, sinAvistamientos: true, q: general.body.descripcion });
+  expect(hallazgos.body).toMatchObject({ total: 0, datos: [] });
   expect((await publicarAvistamiento({ ...datos, idEspecie: 2, idRaza: '' })).status).toBe(400);
   expect((await detalle(origen.id)).body.idEstado).toBe(1);
+  await request(app).patch(`/api/publicaciones/${origen.id}/estado`).set(conToken(propietario.token)).send({ idEstado: 2 }).expect(200);
+  const despues = await request(app).get(ruta);
+  expect(despues.body.datos.map((v) => v.id)).toEqual([segundo.body.id, primero.body.id]);
 });
 
 test('rechaza vínculos nuevos hacia un avistamiento, una ficha inexistente o una desaparición cerrada', async () => {

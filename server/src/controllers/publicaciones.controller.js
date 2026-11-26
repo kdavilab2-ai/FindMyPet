@@ -155,6 +155,7 @@ async function listar(req, res) {
   const agregar = (sql, valor) => { params.push(valor); condiciones.push(sql.replaceAll('?', `$${params.length}`)); };
 
   if (f.tipo) agregar('p.id_tipo = ?', entero(f.tipo, 'Tipo'));
+  if (f.sinAvistamientos === 'true') agregar('p.id_tipo <> ?', TIPO.ENCONTRADA);
   if (f.estado) agregar('p.id_estado = ?', entero(f.estado, 'Estado'));
   if (f.activas === 'true') condiciones.push('p.id_estado IN (1, 3, 5)');
   if (f.especie) agregar('p.id_especie = ?', entero(f.especie, 'Especie'));
@@ -192,8 +193,12 @@ async function resumen(req, res) {
   );
   const r = { desaparecidas: 0, encontradas: 0, adopcion: 0 };
   for (const f of filas) r[{ 1: 'desaparecidas', 2: 'encontradas', 3: 'adopcion' }[f.idTipo]] = f.total;
-  const [{ reunidas }] = await consulta('SELECT COUNT(*)::int AS reunidas FROM publicacion WHERE id_estado IN (2, 4, 6)');
-  res.json({ ...r, resueltas: reunidas });
+  const [{ reunidas, recuperadas }] = await consulta(
+    `SELECT COUNT(*)::int AS reunidas, (COUNT(*) FILTER (WHERE id_tipo = $1 AND id_estado = $2))::int AS recuperadas
+     FROM publicacion WHERE id_estado IN (2, 4, 6)`,
+    [TIPO.DESAPARECIDA, ESTADO.RECUPERADA],
+  );
+  res.json({ ...r, recuperadas, resueltas: reunidas });
 }
 
 // Detalle. RNF-05: el contacto solo se muestra a usuarios con sesión iniciada

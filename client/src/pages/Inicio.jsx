@@ -6,7 +6,11 @@ import TarjetaMascota from '../components/TarjetaMascota';
 import IconoFigma from '../components/IconoFigma';
 import { Alerta, Cargando, ESTILO_TIPO, Vacio } from '../components/Comunes';
 
-const RESUMEN = [[1, 'desaparecidas'], [2, 'encontradas'], [3, 'adopcion']];
+const RESUMEN = [
+  { ...ESTILO_TIPO[1], campo: 'desaparecidas' },
+  { ruta: '/recuperados', plural: 'Recuperados', clase: 'bg-adopcion text-white', campo: 'recuperadas' },
+  { ...ESTILO_TIPO[3], campo: 'adopcion' },
+];
 const normalizar = (texto) => texto.toLocaleLowerCase('es').normalize('NFD').replace(/\p{Diacritic}/gu, '');
 
 // RF-16. Figma Inicio web y móvil: buscador, filtros y resultados en la misma pantalla.
@@ -26,6 +30,7 @@ export default function Inicio() {
     const consulta = new URLSearchParams(clave);
     if (consulta.has('color')) consulta.delete('q');
     if (!consulta.has('estado')) consulta.set('activas', 'true');
+    consulta.set('sinAvistamientos', 'true');
     let vigente = true;
     api.get(`/publicaciones?${consulta}`)
       .then((r) => { if (vigente) { setResultado({ clave, datos: r.datos.slice(0, 8) }); setError(''); } })
@@ -59,12 +64,13 @@ export default function Inicio() {
   );
   const recientes = resultado?.clave === clave ? resultado.datos : null;
   const estadoElegido = catalogos?.estados.find((e) => String(e.id) === params.get('estado'));
-  const urlListado = (tipo) => {
+  const urlListado = (ruta) => {
     const filtros = new URLSearchParams(params);
     if (filtros.has('color')) filtros.delete('q');
-    if (estadoElegido && estadoElegido.idTipo !== tipo) filtros.delete('estado');
-    return `${ESTILO_TIPO[tipo].ruta}${filtros.size ? '?' + filtros : ''}`;
+    if (ruta !== ESTILO_TIPO[3].ruta || estadoElegido?.idTipo !== 3) filtros.delete('estado');
+    return `${ruta}${filtros.size ? '?' + filtros : ''}`;
   };
+  const rutaResultados = estadoElegido?.id === 2 ? '/recuperados' : estadoElegido?.idTipo === 3 ? ESTILO_TIPO[3].ruta : ESTILO_TIPO[1].ruta;
 
   return (
     <section className="figma-pagina figma-inicio">
@@ -78,21 +84,21 @@ export default function Inicio() {
         <button type="submit" aria-label="Buscar"><IconoFigma nombre="buscar" /></button>
       </form>
       {filtro('especie', 'Especie', catalogos?.especies)}
-      {filtro('estado', 'Estado', catalogos?.estados)}
+      {filtro('estado', 'Estado', catalogos?.estados.filter((e) => e.idTipo !== 2))}
       {filtro('canton', 'Zona', catalogos?.cantones)}
       <div className="figma-resumen">
-        {RESUMEN.map(([tipo, campo]) => (
-          <Link key={tipo} to={urlListado(tipo)} className={`figma-contador ${ESTILO_TIPO[tipo].clase}`}>
+        {RESUMEN.map(({ ruta, plural, clase, campo }) => (
+          <Link key={ruta} to={urlListado(ruta)} className={`figma-contador ${clase}`}>
             <span className="figma-contador-icono"><IconoFigma nombre="pata" /></span>
             <span className="figma-contador-texto">
-              <span>{ESTILO_TIPO[tipo].plural}</span>
+              <span>{plural}</span>
               <strong>{resumen?.[campo] ?? '–'}</strong>
             </span>
           </Link>
         ))}
       </div>
       <h2 className="figma-recientes-titulo">Mascotas recientes</h2>
-      <Link to={urlListado(estadoElegido?.idTipo || 1)} className="figma-ver-todas">Ver todas</Link>
+      <Link to={urlListado(rutaResultados)} className="figma-ver-todas">Ver todas</Link>
       <div className="figma-resultados" aria-live="polite">
         <Alerta>{error}</Alerta>
         {!recientes && !error && <Cargando />}

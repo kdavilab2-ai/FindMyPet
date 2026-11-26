@@ -8,12 +8,11 @@ import { Alerta, Cargando, ESTILO_TIPO, Vacio } from '../components/Comunes';
 
 const DESCRIPCION = {
   1: 'Mascotas que sus familias están buscando. Si viste alguna, contacta a su dueño.',
-  2: '¿Viste un animal parecido a una mascota perdida? Registra un avistamiento para comparar rasgos y avisar al propietario si hay una posible coincidencia.',
   3: 'Animales rescatados por refugios y fundaciones que buscan un nuevo hogar.',
 };
 
 // RF-16: búsqueda con filtros por especie, tamaño, color, zona y estado
-export function Filtros({ idTipo, params, cambiar, compacto = false }) {
+export function Filtros({ idTipo, params, cambiar, compacto = false, estadoFijo }) {
   const { catalogos } = useCatalogos();
   const [texto, setTexto] = useState(params.get('q') || '');
   const cantones = useMemo(() => catalogos?.cantones.filter((c) => !params.get('provincia') || c.idProvincia === Number(params.get('provincia'))) || [], [catalogos, params]);
@@ -38,7 +37,7 @@ export function Filtros({ idTipo, params, cambiar, compacto = false }) {
         {select('especie', 'Especie', catalogos.especies)}
         {!compacto && select('tamano', 'Tamaño', catalogos.tamanos)}
         {!compacto && select('color', 'Color', catalogos.colores)}
-        {!compacto && select('estado', 'Estado', idTipo ? estados : estados.map((e) => ({ ...e, nombre: `${catalogos.tipos.find((t) => t.id === e.idTipo).nombre}: ${e.nombre}` })))}
+        {!compacto && !estadoFijo && select('estado', 'Estado', idTipo ? estados : estados.map((e) => ({ ...e, nombre: `${catalogos.tipos.find((t) => t.id === e.idTipo).nombre}: ${e.nombre}` })))}
         {select('canton', 'Cantón', cantones, { sector: '' })}
         {!compacto && params.get('canton') && select('sector', 'Sector', sectores)}
       </div>
@@ -46,22 +45,31 @@ export function Filtros({ idTipo, params, cambiar, compacto = false }) {
   );
 }
 
-export default function Listado({ idTipo }) {
+export default function Listado({ idTipo, estadoFijo }) {
   const { usuario } = useAuth();
   const [params, setParams] = useSearchParams();
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState('');
   const estilo = ESTILO_TIPO[idTipo];
+  const recuperados = estadoFijo === 2;
   const pagina = Number(params.get('pagina')) || 1;
   const clave = params.toString();
 
   useEffect(() => {
     const consulta = new URLSearchParams(params);
     consulta.set('tipo', idTipo);
+    if (estadoFijo) {
+      consulta.set('estado', estadoFijo);
+      consulta.delete('activas');
+    }
     setResultado(null);
     setError('');
-    api.get(`/publicaciones?${consulta}`).then(setResultado).catch((e) => setError(e.message));
-  }, [clave, idTipo]); // eslint-disable-line react-hooks/exhaustive-deps
+    let vigente = true;
+    api.get(`/publicaciones?${consulta}`)
+      .then((respuesta) => { if (vigente) setResultado(respuesta); })
+      .catch((e) => { if (vigente) setError(e.message); });
+    return () => { vigente = false; };
+  }, [clave, idTipo, estadoFijo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cambiar = (cambios) => {
     const nuevos = new URLSearchParams(params);
@@ -74,15 +82,15 @@ export default function Listado({ idTipo }) {
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-bold ${estilo.clase}`}>{estilo.plural}</span>
-          <h1 className="titulo-pagina mt-2">{{ 1: 'Mascotas perdidas', 2: 'Avistamientos de mascotas', 3: 'Animales en adopción' }[idTipo]}</h1>
-          <p className="mt-1 text-sm text-suave">{DESCRIPCION[idTipo]}</p>
+          <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-bold ${recuperados ? 'bg-adopcion text-white' : estilo.clase}`}>{recuperados ? 'Recuperados' : estilo.plural}</span>
+          <h1 className="titulo-pagina mt-2">{recuperados ? 'Mascotas recuperadas' : idTipo === 1 ? 'Mascotas perdidas' : 'Animales en adopción'}</h1>
+          <p className="mt-1 text-sm text-suave">{recuperados ? 'Mascotas que han vuelto con sus familias.' : DESCRIPCION[idTipo]}</p>
         </div>
-        {idTipo === 3
+        {recuperados ? <Link to="/perdidas" className="btn btn-secundario">Ver mascotas perdidas</Link> : idTipo === 3
           ? <Link to="/refugios" className="btn btn-secundario">Ver refugios</Link>
-          : <Link to={usuario ? `/reportar?tipo=${idTipo}` : '/login'} state={usuario ? undefined : { desde: `/reportar?tipo=${idTipo}` }} className="btn btn-primario">+ {idTipo === 1 ? 'Reportar mascota perdida' : 'Registrar avistamiento'}</Link>}
+          : <Link to={usuario ? '/reportar?tipo=1' : '/login'} state={usuario ? undefined : { desde: '/reportar?tipo=1' }} className="btn btn-primario">+ Reportar mascota perdida</Link>}
       </div>
-      <div className="panel mb-5 p-4"><Filtros idTipo={idTipo} params={params} cambiar={cambiar} /></div>
+      <div className="panel mb-5 p-4"><Filtros idTipo={idTipo} params={params} cambiar={cambiar} estadoFijo={estadoFijo} /></div>
       <Alerta>{error}</Alerta>
       {!resultado && !error && <Cargando />}
       {resultado && (

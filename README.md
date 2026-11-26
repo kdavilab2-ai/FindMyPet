@@ -91,6 +91,8 @@ La exportación JSON incluye datos de la cuenta y referencias a los archivos pro
 
 Cada ficha de mascota perdida tiene una sección **Avistamientos**. Usa **Publicar avistamiento** desde esa ficha para añadir fotos y observaciones. El avistamiento también conserva su propia página. Las coincidencias sugeridas y los reportes publicados por separado siguen su flujo habitual. Si actualizas una instalación existente, ejecuta `npm run db:migrate` en `server` para añadir el vínculo entre publicaciones.
 
+Cuando el propietario confirma la recuperación, la ficha pasa de **Perdidas** a **Recuperados**. Los avistamientos vinculados se consultan en esa misma ficha. Los reportes independientes siguen disponibles en **Mis reportes** y en el flujo de coincidencias.
+
 En una publicación de mascota perdida, abre **¿La has visto?**. Usa **Registra un avistamiento** si solo viste al animal. Si ya lo entregaste, abre **Informar traslado a un refugio** e indica en qué estado estaba, dónde y cuándo lo localizaste y qué refugio lo recibió. Las señas particulares son opcionales. El formulario toma el tipo de animal de la ficha de origen y usa la categoría **Otro** cuando se abre sin una referencia disponible. Puedes añadir notas de entrega para las cuentas vinculadas y también informar de un traslado desde el detalle de un avistamiento propio.
 
 Desde **Mi refugio → Gestionar traslado**, el refugio confirma la recepción, consulta los contactos autorizados de quien reportó el avistamiento y puede escribir por privado a los posibles propietarios. Recibe avisos de nuevas coincidencias, de la posible identificación y de la confirmación de recuperación de un reporte vinculado.
