@@ -82,7 +82,8 @@ export default function CoordinacionAvistamiento({ id, nombreAnimal, alConfirmar
             {c.recuperada && <p className="text-adopcion">Recuperación confirmada por el propietario en su reporte</p>}
           </div>
           {datos.esRefugio && c.destino && !c.recuperada && <button type="button" className="btn btn-secundario"
-            onClick={() => { setDestino(String(c.destino)); campoMensaje.current?.focus(); }}>Contactar al propietario</button>}
+            onClick={() => { setDestino(String(c.destino)); campoMensaje.current?.focus(); }}>Enviar mensaje al propietario</button>}
+          {c.contactos?.length > 0 && <div className="w-full"><EnlacesContacto contactos={c.contactos} /></div>}
         </div>)}
       </div>}
       <h3 className="text-sm font-semibold">{datos.mensajes.length > 0 ? 'Comunicación en curso' : 'Mensajes de coordinación'}</h3>

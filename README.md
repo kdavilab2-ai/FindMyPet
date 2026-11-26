@@ -54,7 +54,7 @@ Al abrir FindMyPet sin una sesión iniciada, verás **Iniciar sesión**. Al ingr
 
 Después de instalar FindMyPet, haz doble clic en **Abrir demostracion FindMyPet.bat**. Abre [la demostración](http://localhost:5174) con una base PostgreSQL separada y un rótulo visible. El primer inicio prepara el contenido. Los siguientes conservan lo que hagas durante el ensayo y evitan duplicar los ejemplos. Usa **Detener FindMyPet.bat** para cerrar los servidores.
 
-Las cinco cuentas ficticias de esta tabla usan la contraseña de demostración **`Clave1234`**. Los contactos están bajo el dominio reservado `.test` y las coincidencias se calculan por atributos sin enviar fotos a servicios externos.
+Las cinco cuentas ficticias de esta tabla usan la contraseña de demostración **`Clave1234`**. Los correos usan el dominio reservado `.test` y los teléfonos son de muestra. Las coincidencias se calculan por atributos sin enviar fotos a servicios externos.
 
 | Cuenta | Recorrido sugerido |
 | --- | --- |
@@ -112,7 +112,7 @@ El análisis sugiere similitudes y avisa a los propietarios. Usa ubicación, fec
 
 ## Contacto para adopciones
 
-Al pulsar **Me interesa adoptar**, la ficha confirma que avisó al refugio. Solo el refugio responsable puede ver el interés y los datos de contacto compartidos en **Mi refugio → Personas interesadas en adoptar** o en su ficha de adopción. Puede escribir al correo de la persona o llamarla si registró un teléfono. El interés queda registrado una sola vez por persona y publicación.
+Al pulsar **Me interesa adoptar**, la ficha confirma que avisó al refugio. Solo el refugio responsable puede ver el interés y los datos de contacto compartidos en **Mi refugio → Personas interesadas en adoptar** o debajo de la foto en su ficha de adopción. Puede escribir al correo de la persona o llamarla si registró un teléfono. El interés queda registrado una sola vez por persona y publicación.
 
 ## Despliegue
 - **Base de datos:** Neon → crear proyecto → copiar la *connection string* (incluye `?sslmode=require`).

@@ -17,7 +17,7 @@ beforeAll(async () => {
   refugio = await crearUsuario({ correo: 'refugio@findmypet.test', rol: 2, nombres: 'Traslado' });
   otroRefugio = await crearUsuario({ correo: 'otro-refugio@findmypet.test', rol: 2, refugioAutorizado: false });
   visitante = await crearUsuario({ correo: 'visitante@findmypet.test' });
-  perdida = (await publicar(propietario.token)).body;
+  perdida = (await publicar(propietario.token, { telefono: '0900000006', correoContacto: 'propietario-aviso@findmypet.test' })).body;
 });
 afterAll(cerrarBD);
 afterEach(() => jest.restoreAllMocks());
@@ -85,7 +85,14 @@ test('restringe coordinación y notas a las partes vinculadas y habilita el cont
   expect(privacidad.status).toBe(200);
   const seguimiento = await coordinar(refugio);
   expect(seguimiento.body.autor).toEqual({ nombre: 'Usuario P.', contactos: [{ tipo: 'WhatsApp', valor: '0900000004' }] });
-  expect(seguimiento.body.coincidencias).toEqual([expect.objectContaining({ id: perdida.id, identificada: false, recuperada: false, destino: propietario.id })]);
+  expect(seguimiento.body.coincidencias).toEqual([expect.objectContaining({ id: perdida.id, identificada: false, recuperada: false, destino: propietario.id,
+    contactos: [{ tipo: 'Teléfono', valor: '0900000006' }, { tipo: 'Correo', valor: 'propietario-aviso@findmypet.test' }] })]);
+  expect((await coordinar(propietario)).body.coincidencias[0].contactos).toEqual([]);
+  const preferencia = (idTipoContactoVisible) => request(app).patch(`/api/seguridad/contactos/${perdida.id}`)
+    .set(conToken(propietario.token)).send({ idTipoContactoVisible });
+  expect((await preferencia(3)).status).toBe(200);
+  expect((await coordinar(refugio)).body.coincidencias[0].contactos).toEqual([{ tipo: 'Correo', valor: 'propietario-aviso@findmypet.test' }]);
+  expect((await preferencia(null)).status).toBe(200);
   expect((await mensaje(propietario, visitante.id, 'Prueba de permiso')).status).toBe(403);
   expect((await mensaje(propietario, refugio.id, '¿Puedo acercarme a comprobar el parecido?')).status).toBe(201);
   expect((await coordinar(refugio)).body.mensajes[0]).toMatchObject({ mio: false, contenido: '¿Puedo acercarme a comprobar el parecido?' });

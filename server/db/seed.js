@@ -54,7 +54,10 @@ async function crearPublicacion(p) {
     const idUb = await crearUbicacion(...p.ubicacion);
     await consulta('INSERT INTO reporte (id_publicacion, id_ubicacion, fecha_evento) VALUES ($1, $2, $3)', [idPub, idUb, p.fecha]);
   }
-  await consulta('INSERT INTO contacto_publicacion (id_publicacion, id_tipo_contacto, valor) VALUES ($1, 2, $2)', [idPub, p.whatsapp]);
+  await consulta('INSERT INTO contacto_publicacion (id_publicacion, id_tipo_contacto, valor) VALUES ($1, 1, $2)', [idPub, p.whatsapp]);
+  if (p.tipo !== 3) {
+    await consulta('INSERT INTO contacto_publicacion (id_publicacion, id_tipo_contacto, valor) VALUES ($1, 2, $2)', [idPub, p.whatsapp]);
+  }
   const m = await una(
     "INSERT INTO multimedia (id_publicacion, id_tipo_multimedia, url, es_valida_ia) VALUES ($1, 1, '', TRUE) RETURNING id_multimedia",
     [idPub],

@@ -58,9 +58,14 @@ async function coordinacion(req, res) {
       ORDER BY identificada DESC, co.porcentaje DESC`,
     [id, ESTADO_COINCIDENCIA.SUGERIDA, ESTADO_COINCIDENCIA.CONFIRMADA, ESTADO.RECUPERADA, esRefugio, usuario, esAutor]);
     const autor = esRefugio ? { nombre: caso.nombreAutor, contactos: await contactosPublicacion(tx.consulta, id) } : null;
+    const seguimiento = await Promise.all(coincidencias.map(async ({ idUsuario, ...c }) => {
+      const destino = destinos.has(idUsuario) ? idUsuario : null;
+      const contactos = esRefugio && destino && !c.recuperada ? await contactosPublicacion(tx.consulta, c.id) : [];
+      return { ...c, destino, contactos: contactos.filter(({ tipo }) => tipo === 'Teléfono' || tipo === 'Correo') };
+    }));
     return { notas: caso.notas, puedeConfirmar, esRefugio, autor,
       refugio: { nombre: caso.nombre, informadaEn: caso.informadaEn, confirmadaEn: caso.confirmadaEn },
-      coincidencias: coincidencias.map(({ idUsuario, ...c }) => ({ ...c, destino: destinos.has(idUsuario) ? idUsuario : null })),
+      coincidencias: seguimiento,
       destinos: [...destinos].map(([id, etiqueta]) => ({ id, etiqueta })),
       mensajes: mensajes.reverse().map(({ interlocutor, ...m }) => ({ ...m, interlocutor: destinos.get(interlocutor) })) };
   });

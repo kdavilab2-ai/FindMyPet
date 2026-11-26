@@ -14,6 +14,9 @@ const cuentasClasicas = [
   ['admin', 'admin'], ['sofia', 'ana', 'Ana', 'Torres'], ['mateo', 'luis', 'Luis', 'Mendoza'],
   ['huellitas', 'huellitas'], ['patitas', 'patitas'],
 ];
+const accesosClasicos = new Map(cuentasClasicas.map(([clave, local]) => [clave, `${local}@findmypet.test`]));
+const telefonosDemo = new Map([...Object.keys(usuarios), ...refugios.map(({ clave }) => clave)]
+  .map((clave, i) => [clave, `09000000${21 + i}`]));
 const esLocal = (url) => ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
   && ['postgres:', 'postgresql:'].includes(url.protocol);
 
@@ -158,6 +161,28 @@ async function restaurarAccesosClasicos({ consulta, ejecutar }) {
   await consulta('UPDATE demo_lote SET accesos_clasicos = TRUE WHERE firma = $1', [firma]);
 }
 
+async function cargarTelefonosDemo({ consulta, ejecutar }) {
+  await ejecutar('ALTER TABLE demo_lote ADD COLUMN IF NOT EXISTS telefonos_demo BOOLEAN NOT NULL DEFAULT FALSE');
+  for (const [clave, telefono] of telefonosDemo) {
+    await consulta('UPDATE usuario SET telefono = $1 WHERE correo = $2 AND telefono IS NULL',
+      [telefono, accesosClasicos.get(clave) || correoDemo(clave)]);
+  }
+  for (const [tipo, ejemplos] of [[TIPO.DESAPARECIDA, perdidas], [TIPO.ENCONTRADA, hallazgos], [TIPO.ADOPCION, adopciones]]) {
+    for (const ejemplo of ejemplos) {
+      // Solo se amplían las publicaciones originales del lote que conservan su texto y correo de muestra.
+      const correo = accesosClasicos.get(ejemplo.autor) || correoDemo(ejemplo.autor);
+      await consulta(`INSERT INTO contacto_publicacion (id_publicacion, id_tipo_contacto, valor)
+        SELECT p.id_publicacion, $5, $6 FROM publicacion p JOIN usuario u USING (id_usuario)
+        WHERE u.correo = $1 AND p.id_tipo = $2 AND p.descripcion = $3 AND p.nombre_animal IS NOT DISTINCT FROM $4
+          AND EXISTS (SELECT 1 FROM contacto_publicacion cp WHERE cp.id_publicacion = p.id_publicacion
+            AND cp.id_tipo_contacto = $7 AND cp.valor = $1)
+          AND NOT EXISTS (SELECT 1 FROM contacto_publicacion cp WHERE cp.id_publicacion = p.id_publicacion AND cp.id_tipo_contacto = $5)`,
+      [correo, tipo, ejemplo.descripcion, ejemplo.nombre || null, TIPO_CONTACTO.TELEFONO, telefonosDemo.get(ejemplo.autor), TIPO_CONTACTO.CORREO]);
+    }
+  }
+  await consulta('UPDATE demo_lote SET telefonos_demo = TRUE WHERE firma = $1', [firma]);
+}
+
 async function poblar(archivoClave) {
   const url = new URL(process.env.DATABASE_URL);
   if (!esLocal(url) || url.pathname !== `/${baseDemo}`) throw new Error('La carga de demostración solo funciona en su base PostgreSQL local dedicada.');
@@ -194,6 +219,7 @@ async function poblar(archivoClave) {
       await candado.query(esquema);
     }
     if (!lote.accesosClasicos) await db.transaccion(restaurarAccesosClasicos);
+    if (!lote.telefonosDemo) await db.transaccion(cargarTelefonosDemo);
     if (!lote.terminada) {
       for (const id of lote.perdidas) {
         const pendiente = await db.una('SELECT 1 FROM publicacion WHERE id_publicacion = $1 AND id_estado = $2', [id, ESTADO.DESAPARECIDA_PENDIENTE]);

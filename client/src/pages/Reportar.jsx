@@ -40,7 +40,7 @@ export default function Reportar() {
   const tipo = !id && (solicitaTraslado || referencia) ? 2 : tipoElegido;
   const [datos, setDatos] = useState({
     nombreAnimal: '', idEspecie: '1', idRaza: '', idTamano: '', colores: [], descripcion: '', fechaEvento: hoy(),
-    estadoSalud: '', telefono: '', whatsapp: usuario?.telefono || '', correoContacto: '',
+    estadoSalud: '', telefono: usuario?.telefono || '', whatsapp: '', correoContacto: '',
     idRefugioCustodia: '', notasCustodia: '',
   });
   const [horaEvento, setHoraEvento] = useState('');
@@ -347,8 +347,8 @@ export default function Reportar() {
           <fieldset>
             <legend className="etiqueta">Contacto (al menos uno; solo lo verán usuarios registrados)</legend>
             <div className={`grid gap-3 ${tipo === 3 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
+              <input className="input" type="tel" autoComplete="tel-national" placeholder="Teléfono 09XXXXXXXX" aria-label="Teléfono" {...campo('telefono')} />
               {tipo !== 3 && <input className="input" type="tel" placeholder="WhatsApp 09XXXXXXXX o +5939XXXXXXXX" aria-label="WhatsApp" {...campo('whatsapp')} />}
-              <input className="input" inputMode="numeric" placeholder="Teléfono 09XXXXXXXX" aria-label="Teléfono" {...campo('telefono')} />
               <input className="input" type="email" placeholder="Correo" aria-label="Correo de contacto" {...campo('correoContacto')} />
             </div>
           </fieldset>

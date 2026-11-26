@@ -104,6 +104,7 @@ export default function Detalle() {
               ))}
             </div>
           )}
+          {p.idTipo === 3 && p.esAutor && refugioAutorizado && <InteresesAdopcion key={p.id} publicacion={p.id} />}
           {p.idTipo !== 3 && p.ubicacion?.latitud && (
             <div className="panel p-3">
               <p className="mb-2 text-xs font-semibold text-suave">{p.idTipo === 1 ? 'Último lugar donde fue vista' : 'Lugar del avistamiento'}</p>
@@ -173,8 +174,6 @@ export default function Detalle() {
               </div>
             </div>
           )}
-
-          {p.idTipo === 3 && p.esAutor && refugioAutorizado && <InteresesAdopcion key={p.id} publicacion={p.id} />}
 
           {!p.esAutor && !(p.idTipo === 1 && p.idEstado === 2) && (
             <div className="panel space-y-3 p-5">
