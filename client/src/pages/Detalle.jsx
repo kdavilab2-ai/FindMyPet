@@ -42,7 +42,9 @@ export default function Detalle() {
   const cargar = useCallback(() => api.get(`/publicaciones/${id}`).then(setP).catch((e) => setError(e.message)), [id]);
   useEffect(() => { cargar(); }, [cargar]);
   useEffect(() => {
-    if (hash === '#avistamientos' && p?.id === Number(id)) document.getElementById('avistamientos')?.scrollIntoView();
+    if (hash !== '#avistamientos' || p?.id !== Number(id)) return;
+    const reducirMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById('avistamientos')?.scrollIntoView({ behavior: reducirMovimiento ? 'instant' : 'smooth' });
   }, [hash, id, key, p?.id]);
 
   if (error && !p) return <div className="mx-auto max-w-5xl px-4 py-8"><Alerta>{error}</Alerta></div>;
@@ -184,7 +186,7 @@ export default function Detalle() {
               )}
               {p.idTipo === 1 && p.idEstado === 1 && (
                 <>
-                  <p className="text-xs text-suave">¿Viste un animal parecido? <Link to={`/reportar?tipo=2&referencia=${id}`} className="text-lavanda underline">Registra un avistamiento en esta publicación</Link>.</p>
+                  <p className="text-xs text-suave">¿Viste un animal parecido? <Link to="#avistamientos" className="text-lavanda underline">Registra un avistamiento en esta publicación</Link>.</p>
                   <div className="space-y-2 border-t border-borde pt-3">
                     <p className="text-sm text-suave">Si ya entregaste al animal, informa qué refugio lo recibió para que pueda coordinar con los posibles propietarios.</p>
                     <Link to={`/reportar?tipo=2&traslado=1&referencia=${id}`} className="btn btn-secundario w-full sm:w-auto">Informar traslado a un refugio</Link>
