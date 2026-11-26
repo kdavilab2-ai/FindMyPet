@@ -135,7 +135,8 @@ test('solo el propietario confirma la recuperación y un tercero no edita el tra
   const retirar = request(app).put(`/api/publicaciones/${hallada.id}`).set(conToken(testigo.token));
   for (const [k, v] of Object.entries(await datosBase({ tipo: 2, nombreAnimal: '', idRefugioCustodia: '' }))) retirar.field(k, String(v));
   expect((await retirar).status).toBe(400);
-  const recuperar = (u) => request(app).patch(`/api/publicaciones/${perdida.id}/estado`).set(conToken(u.token)).send({ idEstado: 2 });
+  const recuperar = (u) => request(app).patch(`/api/publicaciones/${perdida.id}/estado`).set(conToken(u.token))
+    .send({ idEstado: 2, descripcionRecuperacion: 'Lo recogí en el refugio después de verificar su collar.' });
   const recuperadas = () => request(app).get('/api/publicaciones').query({ tipo: 1, estado: 2 });
   expect((await recuperadas()).body.datos).toEqual([]);
   expect((await request(app).get('/api/publicaciones/resumen')).body.recuperadas).toBe(0);
@@ -213,7 +214,8 @@ test('publica observaciones y fotos en la ficha de origen con permisos de contac
   expect(hallazgos.body).toMatchObject({ total: 0, datos: [] });
   expect((await publicarAvistamiento({ ...datos, idEspecie: 2, idRaza: '' })).status).toBe(400);
   expect((await detalle(origen.id)).body.idEstado).toBe(1);
-  await request(app).patch(`/api/publicaciones/${origen.id}/estado`).set(conToken(propietario.token)).send({ idEstado: 2 }).expect(200);
+  await request(app).patch(`/api/publicaciones/${origen.id}/estado`).set(conToken(propietario.token))
+    .send({ idEstado: 2, descripcionRecuperacion: 'Lo encontramos junto a la cancha del barrio.' }).expect(200);
   const despues = await request(app).get(ruta);
   expect(despues.body.datos.map((v) => v.id)).toEqual([segundo.body.id, primero.body.id]);
 });

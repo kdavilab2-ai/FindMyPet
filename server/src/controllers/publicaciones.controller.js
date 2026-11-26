@@ -11,16 +11,18 @@ const {
 } = require('../lib/constantes');
 const coincidencias = require('../services/coincidencias.service');
 const alertas = require('../services/alertas.service');
-const { leerHora, guardarCustodia, confirmarRecuperacion } = require('../services/avistamientos.service');
+const { leerHora, guardarCustodia, confirmarRecuperacion, leerDescripcionRecuperacion } = require('../services/avistamientos.service');
 const { contactosPublicacion } = require('../lib/contactos');
 
 const POR_PAGINA = 12;
+const DESCRIPCION_PUBLICA = `CASE WHEN p.id_estado = ${ESTADO.RECUPERADA}
+  THEN COALESCE(p.descripcion_recuperacion, p.descripcion) ELSE p.descripcion END`;
 
 // Consulta base: una publicación con sus catálogos, ubicación, colores y foto principal
 const SELECT_PUBLICACION = `
   SELECT p.id_publicacion AS id, p.id_usuario, p.id_tipo, tp.nombre AS tipo, p.id_estado, ep.nombre AS estado,
          p.id_especie, e.nombre AS especie, p.id_raza, rz.nombre AS raza, p.id_tamano, t.nombre AS tamano,
-         p.nombre_animal, p.descripcion, p.fecha_creacion, r.fecha_evento, to_char(r.hora_evento, 'HH24:MI') AS hora_evento,
+         p.nombre_animal, ${DESCRIPCION_PUBLICA} AS descripcion, p.fecha_creacion, r.fecha_evento, to_char(r.hora_evento, 'HH24:MI') AS hora_evento,
          r.id_desaparicion_origen, a.estado_salud,
          p.id_tipo = ${TIPO.DESAPARECIDA} AND EXISTS (
            SELECT 1 FROM reporte av WHERE av.id_desaparicion_origen = p.id_publicacion
@@ -172,7 +174,7 @@ async function listar(req, res) {
   if (f.sector) agregar('s.id_sector = ?', entero(f.sector, 'Sector'));
   if (f.refugio) agregar('rf.id_refugio = ?', entero(f.refugio, 'Refugio'));
   if (texto(f.q)) {
-    agregar("CONCAT_WS(' ', p.nombre_animal, p.descripcion, rz.nombre, e.nombre, s.nombre, c.nombre, ub.direccion, rf.nombre) ILIKE ?", `%${texto(f.q)}%`);
+    agregar(`CONCAT_WS(' ', p.nombre_animal, ${DESCRIPCION_PUBLICA}, rz.nombre, e.nombre, s.nombre, c.nombre, ub.direccion, rf.nombre) ILIKE ?`, `%${texto(f.q)}%`);
   }
 
   const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
@@ -365,9 +367,11 @@ async function actualizar(req, res) {
   await transaccion(async (tx) => {
     // El UPDATE bloquea la publicación hasta confirmar el total de archivos de esta edición.
     const [publicacion] = await tx.consulta(
-      `UPDATE publicacion SET id_especie = $1, id_raza = $2, id_tamano = $3, nombre_animal = $4, descripcion = $5
+      `UPDATE publicacion SET id_especie = $1, id_raza = $2, id_tamano = $3, nombre_animal = $4,
+       descripcion = CASE WHEN id_estado = $7 THEN descripcion ELSE $5 END,
+       descripcion_recuperacion = CASE WHEN id_estado = $7 THEN $5 ELSE descripcion_recuperacion END
        WHERE id_publicacion = $6 RETURNING id_publicacion, id_tipo_contacto_visible`,
-      [animal.idEspecie, animal.idRaza, animal.idTamano, animal.nombreAnimal, animal.descripcion, actual.idPublicacion],
+      [animal.idEspecie, animal.idRaza, animal.idTamano, animal.nombreAnimal, animal.descripcion, actual.idPublicacion, ESTADO.RECUPERADA],
     );
     if (!publicacion) throw new ErrorHttp(404, 'Publicación no encontrada');
     const visible = publicacion.idTipoContactoVisible;
@@ -418,7 +422,8 @@ async function cambiarEstado(req, res) {
   if (!ESTADOS_POR_TIPO[actual.idTipo].includes(idEstado)) throw new ErrorHttp(400, 'Estado no válido para este tipo de publicación');
   if (idEstado === ESTADO.RECUPERADA && actual.idUsuario !== req.usuario.id) throw new ErrorHttp(403, 'Solo el propietario puede confirmar la recuperación');
   if (idEstado === ESTADO.RECUPERADA) {
-    await transaccion((tx) => confirmarRecuperacion(tx.consulta, actual.idPublicacion));
+    const descripcion = leerDescripcionRecuperacion(req.body.descripcionRecuperacion);
+    await transaccion((tx) => confirmarRecuperacion(tx.consulta, actual.idPublicacion, descripcion));
   } else {
     await una('UPDATE publicacion SET id_estado = $1 WHERE id_publicacion = $2', [idEstado, actual.idPublicacion]);
   }

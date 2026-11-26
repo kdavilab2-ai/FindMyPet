@@ -129,11 +129,23 @@ describe('RF-05, RF-06, RF-14, RNF-13: gestión por el autor', () => {
     expect((await request(app).delete(`/api/publicaciones/${id}`).set(conToken(luis.token))).status).toBe(403);
   });
 
-  test('cambia a Recuperada y rechaza estados de otro tipo', async () => {
-    const ok = await request(app).patch(`/api/publicaciones/${id}/estado`).set(conToken(ana.token)).send({ idEstado: 2 });
-    expect(ok.body.estado).toBe('Recuperada');
-    const mal = await request(app).patch(`/api/publicaciones/${id}/estado`).set(conToken(ana.token)).send({ idEstado: 6 });
-    expect(mal.status).toBe(400);
+  test('publica una nota breve al recuperar y conserva el texto de desaparición al reabrir', async () => {
+    const estado = (body) => request(app).patch(`/api/publicaciones/${id}/estado`).set(conToken(ana.token)).send(body);
+    const detalle = () => request(app).get(`/api/publicaciones/${id}`);
+    const original = (await detalle()).body.descripcion;
+    const nota = 'Lo encontramos en la cancha de Los Pinos y regresó a casa esa tarde.';
+    expect((await estado({ idEstado: 2 })).status).toBe(400);
+    expect((await estado({ idEstado: 2, descripcionRecuperacion: '    parque    ' })).status).toBe(400);
+    expect((await estado({ idEstado: 2, descripcionRecuperacion: 'a'.repeat(301) })).status).toBe(400);
+    expect((await detalle()).body).toMatchObject({ idEstado: 1, descripcion: original });
+    expect((await estado({ idEstado: 2, descripcionRecuperacion: `  ${nota}  ` })).body).toMatchObject({ estado: 'Recuperada', descripcion: nota });
+    expect((await estado({ idEstado: 2, descripcionRecuperacion: 'Reintento con otra descripción.' })).body.descripcion).toBe(nota);
+    expect((await detalle()).body.descripcion).toBe(nota);
+    const lista = await request(app).get('/api/publicaciones').query({ estado: 2, q: 'cancha de Los Pinos' });
+    expect(lista.body.datos).toContainEqual(expect.objectContaining({ id, descripcion: nota }));
+    expect((await estado({ idEstado: 1 })).body.descripcion).toBe(original);
+    expect((await estado({ idEstado: 2, descripcionRecuperacion: nota })).status).toBe(200);
+    expect((await estado({ idEstado: 6 })).status).toBe(400);
   });
 
   test('edita datos, agrega una foto y quita otra', async () => {
@@ -147,6 +159,7 @@ describe('RF-05, RF-06, RF-14, RNF-13: gestión por el autor', () => {
     expect(res.status).toBe(200);
     expect(res.body.nombreAnimal).toBe('Firulais II');
     const despues = (await request(app).get(`/api/publicaciones/${id}`)).body;
+    expect(despues.descripcion).toBe('Descripción actualizada del perro');
     expect(despues.multimedia).toHaveLength(1);
     expect(despues.multimedia[0].id).not.toBe(actual.multimedia[0].id);
   });

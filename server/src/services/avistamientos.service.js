@@ -20,9 +20,17 @@ async function avisarRefugio(consultar, id, mensaje) {
   if (refugio) await avisarCaso(consultar, id, [refugio.idUsuario], mensaje);
 }
 
-async function confirmarRecuperacion(consultar, id) {
-  const [recuperada] = await consultar(`UPDATE publicacion SET id_estado = $2 WHERE id_publicacion = $1
-    AND id_estado <> $2 RETURNING nombre_animal`, [id, ESTADO.RECUPERADA]);
+function leerDescripcionRecuperacion(valor) {
+  const descripcion = texto(valor);
+  if (descripcion.length < 10 || descripcion.length > 300) {
+    throw new ErrorHttp(400, 'Escribe entre 10 y 300 caracteres sobre dónde encontraste a tu mascota o cómo volvió a casa');
+  }
+  return descripcion;
+}
+
+async function confirmarRecuperacion(consultar, id, descripcion = null) {
+  const [recuperada] = await consultar(`UPDATE publicacion SET id_estado = $2, descripcion_recuperacion = $3
+    WHERE id_publicacion = $1 AND id_estado <> $2 RETURNING nombre_animal`, [id, ESTADO.RECUPERADA, descripcion]);
   if (!recuperada) return;
   const casos = await consultar(`SELECT c.id_encontrada FROM coincidencia c JOIN custodia_refugio cr ON cr.id_publicacion = c.id_encontrada
     WHERE c.id_desaparecida = $1 AND c.id_estado = $2`, [id, ESTADO_COINCIDENCIA.CONFIRMADA]);
@@ -70,4 +78,4 @@ async function guardarCustodia(consultar, id, idAutor, datos) {
     `Se informó el traslado de un animal avistado a ${refugio.nombre}. Consulta el reporte para coordinar.`);
 }
 
-module.exports = { leerHora, guardarCustodia, propietarios, avisarCaso, avisarRefugio, confirmarRecuperacion };
+module.exports = { leerHora, guardarCustodia, propietarios, avisarCaso, avisarRefugio, confirmarRecuperacion, leerDescripcionRecuperacion };

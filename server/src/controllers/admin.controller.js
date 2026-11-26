@@ -4,7 +4,7 @@ const { ErrorHttp } = require('../middlewares/errores');
 const { texto, entero } = require('../lib/validar');
 const { ESTADO, ESTADO_CUENTA, ESTADOS_POR_TIPO, TIPO_ACCION, TIPO_NOTIFICACION } = require('../lib/constantes');
 const { SELECT_PUBLICACION } = require('./publicaciones.controller');
-const { confirmarRecuperacion } = require('../services/avistamientos.service');
+const { confirmarRecuperacion, leerDescripcionRecuperacion } = require('../services/avistamientos.service');
 
 function motivoObligatorio(body) {
   const motivo = texto(body.motivo);
@@ -133,8 +133,11 @@ async function actualizarEstado(req, res) {
   if (!ESTADOS_POR_TIPO[p.idTipo].includes(idEstado)) throw new ErrorHttp(400, 'Estado no válido para este tipo');
   if (idEstado === ESTADO.RECUPERADA && p.idUsuario !== req.usuario.id) throw new ErrorHttp(403, 'Solo el propietario puede confirmar la recuperación');
   await transaccion(async (tx) => {
-    if (idEstado === ESTADO.RECUPERADA) await confirmarRecuperacion(tx.consulta, id);
-    else await tx.consulta('UPDATE publicacion SET id_estado = $1 WHERE id_publicacion = $2', [idEstado, id]);
+    if (idEstado === ESTADO.RECUPERADA) {
+      await confirmarRecuperacion(tx.consulta, id, leerDescripcionRecuperacion(req.body.descripcionRecuperacion));
+    } else {
+      await tx.consulta('UPDATE publicacion SET id_estado = $1 WHERE id_publicacion = $2', [idEstado, id]);
+    }
     await tx.consulta('INSERT INTO moderacion (id_admin, id_publicacion, id_tipo_accion, motivo) VALUES ($1, $2, $3, $4)', [req.usuario.id, id, TIPO_ACCION.ACTUALIZAR, motivo]);
   });
   res.json({ id, idEstado });

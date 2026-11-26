@@ -102,7 +102,7 @@ Cada ficha de mascota perdida tiene una sección **Avistamientos**. Usa **Public
 
 En una base local con las fichas de demostración, `npm run seed:avistamientos` desde `server` añade ejemplos ficticios a Rocky y Michi. Este comando conserva los reportes existentes.
 
-Cuando el propietario confirma la recuperación, la ficha pasa de **Perdidas** a **Recuperados**. Los avistamientos vinculados se consultan en esa misma ficha. Los reportes independientes siguen disponibles en **Mis reportes** y en el flujo de coincidencias.
+Cuando el propietario confirma la recuperación, escribe una nota breve sobre dónde o cómo encontró a su mascota. La ficha pasa de **Perdidas** a **Recuperados** y muestra esa nota. Si el propietario reabre la desaparición, la ficha vuelve a mostrar la descripción original. Los avistamientos vinculados se consultan en la misma ficha. Los reportes independientes siguen disponibles en **Mis reportes** y en el flujo de coincidencias.
 
 En una publicación de mascota perdida, abre **¿La has visto?**. Usa **Registra un avistamiento** si solo viste al animal. Si ya lo entregaste, abre **Informar traslado a un refugio** e indica en qué estado estaba, dónde y cuándo lo localizaste y qué refugio lo recibió. Las señas particulares son opcionales. El formulario toma el tipo de animal de la ficha de origen y usa la categoría **Otro** cuando se abre sin una referencia disponible. Puedes añadir notas de entrega para las cuentas vinculadas y también informar de un traslado desde el detalle de un avistamiento propio.
 

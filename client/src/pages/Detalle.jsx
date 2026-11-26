@@ -59,9 +59,14 @@ export default function Detalle() {
   const estadosTipo = catalogos?.estados.filter((e) => e.idTipo === p.idTipo) || [];
   const interesEnviado = contactosAdopcion?.id === p.id ? contactosAdopcion : null;
 
-  const cambiarEstado = async (idEstado) => {
-    try { await api.patch(`/publicaciones/${id}/estado`, { idEstado: Number(idEstado) }); setAviso('Estado actualizado'); cargar(); } catch (e) { setError(e.message); }
+  const guardarEstado = async (idEstado, descripcionRecuperacion) => {
+    const actualizado = await api.patch(`/publicaciones/${id}/estado`, { idEstado: Number(idEstado), descripcionRecuperacion });
+    setP((previo) => previo?.id === actualizado.id ? { ...previo, idEstado: actualizado.idEstado, estado: actualizado.estado, descripcion: actualizado.descripcion } : previo);
+    setAviso('Estado actualizado');
+    setError('');
+    cargar();
   };
+  const cambiarEstado = (idEstado) => guardarEstado(idEstado).catch((e) => setError(e.message));
   const eliminar = async () => {
     try { await api.delete(`/publicaciones/${id}`); navegar('/mis-reportes'); } catch (e) { setError(e.message); }
   };
@@ -213,7 +218,7 @@ export default function Detalle() {
       {p.idTipo === 1 && <AvistamientosPublicacion key={p.id} publicacion={p} avistamientoPublicado={state?.avistamientoPublicado} />}
 
       <ConfirmarRecuperacion nombre={nombre} abierto={confirmarRecuperar} alCerrar={() => setConfirmarRecuperar(false)}
-        alConfirmar={() => { setConfirmarRecuperar(false); cambiarEstado(2); }} />
+        alConfirmar={(nota) => guardarEstado(2, nota)} />
       <Modal titulo="Eliminar publicación" abierto={confirmarEliminar} alCerrar={() => setConfirmarEliminar(false)}>
         <p className="text-sm text-suave">¿Seguro que deseas eliminar la publicación de {nombre}? Esta acción no se puede deshacer.</p>
         <div className="mt-5 flex justify-end gap-2">

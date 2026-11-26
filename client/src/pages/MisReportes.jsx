@@ -19,9 +19,13 @@ export default function MisReportes() {
   const cargar = useCallback(() => api.get('/publicaciones/mias').then(setDatos).catch((e) => setError(e.message)), []);
   useEffect(() => { cargar(); }, [cargar]);
 
-  const cambiarEstado = async (p, idEstado) => {
-    try { await api.patch(`/publicaciones/${p.id}/estado`, { idEstado: Number(idEstado) }); cargar(); } catch (e) { setError(e.message); }
+  const guardarEstado = async (p, idEstado, descripcionRecuperacion) => {
+    const actualizado = await api.patch(`/publicaciones/${p.id}/estado`, { idEstado: Number(idEstado), descripcionRecuperacion });
+    setDatos((previos) => previos?.map((reporte) => reporte.id === actualizado.id ? { ...reporte, ...actualizado } : reporte));
+    setError('');
+    cargar();
   };
+  const cambiarEstado = (p, idEstado) => guardarEstado(p, idEstado).catch((e) => setError(e.message));
   const confirmarEliminar = async () => {
     try { await api.delete(`/publicaciones/${eliminar.id}`); setEliminar(null); cargar(); } catch (e) { setError(e.message); }
   };
@@ -76,7 +80,7 @@ export default function MisReportes() {
         </div>
       ))}
       <ConfirmarRecuperacion nombre={recuperar?.nombreAnimal} abierto={Boolean(recuperar)} alCerrar={() => setRecuperar(null)}
-        alConfirmar={() => { cambiarEstado(recuperar, 2); setRecuperar(null); }} />
+        alConfirmar={(nota) => guardarEstado(recuperar, 2, nota)} />
       <Modal titulo="Eliminar publicación" abierto={Boolean(eliminar)} alCerrar={() => setEliminar(null)}>
         <p className="text-sm text-suave">¿Eliminar la publicación de {eliminar?.nombreAnimal || 'este animal'}? Esta acción no se puede deshacer.</p>
         <div className="mt-5 flex justify-end gap-2">

@@ -196,6 +196,7 @@ CREATE TABLE IF NOT EXISTS publicacion (
 );
 CREATE INDEX IF NOT EXISTS idx_publicacion_tipo ON publicacion(id_tipo, id_estado);
 ALTER TABLE publicacion ADD COLUMN IF NOT EXISTS id_tipo_contacto_visible INT REFERENCES tipo_contacto(id_tipo_contacto);
+ALTER TABLE publicacion ADD COLUMN IF NOT EXISTS descripcion_recuperacion TEXT;
 
 CREATE TABLE IF NOT EXISTS publicacion_color (
   id_publicacion INT REFERENCES publicacion(id_publicacion) ON DELETE CASCADE,
