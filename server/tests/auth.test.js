@@ -97,6 +97,20 @@ describe('RF-02, RNF-19: inicio de sesión', () => {
 });
 
 describe('RF-18: recuperación de contraseña', () => {
+  test('producción sin SMTP responde 503 sin registrar el enlace ni el destinatario', async () => {
+    const entorno = jest.replaceProperty(process, 'env', { ...process.env, NODE_ENV: 'production', SMTP_HOST: '' });
+    const consola = jest.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const res = await request(app).post('/api/auth/olvide').send({ correo: ciudadano.correo });
+      expect(res.status).toBe(503);
+      expect(res.body.error).toBe('El correo de recuperación no está disponible. Intente más tarde');
+      expect(consola).not.toHaveBeenCalled();
+    } finally {
+      consola.mockRestore();
+      entorno.restore();
+    }
+  });
+
   test('correo inexistente muestra error de cuenta no encontrada (CU-12)', async () => {
     const res = await request(app).post('/api/auth/olvide').send({ correo: 'nadie@findmypet.test' });
     expect(res.status).toBe(404);

@@ -115,16 +115,15 @@ El análisis sugiere similitudes y avisa a los propietarios. Usa ubicación, fec
 Al pulsar **Me interesa adoptar**, la ficha confirma que avisó al refugio. Solo el refugio responsable puede ver el interés y los datos de contacto compartidos en **Mi refugio → Personas interesadas en adoptar** o debajo de la foto en su ficha de adopción. Puede escribir al correo de la persona o llamarla si registró un teléfono. El interés queda registrado una sola vez por persona y publicación.
 
 ## Despliegue
-- **Base de datos:** Neon → crear proyecto → copiar la *connection string* (incluye `?sslmode=require`).
-- **Backend:** Render → New → Blueprint con `render.yaml`, o Web Service con raíz `server`, build `npm install`,
-  start `npm run start:prod`. Variables: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`, `CORS_ORIGIN`, `GEMINI_API_KEY` (opcional).
-  Reserva `npm run seed` para una base desechable.
-- **Frontend:** Vercel → importar el repositorio con raíz `client`, framework Vite, variable `VITE_API_URL` = URL del backend.
+
+Para la demostración académica, consulta la [guía de Render](docs/despliegue-render.md). El Blueprint `render.demo.yaml`
+prepara un sitio estático, un servicio web y una base PostgreSQL independiente. `render.yaml` corresponde a la configuración
+anterior con API en Render, frontend en Vercel y PostgreSQL en Neon.
 
 ## Variables de entorno
-Ver `server/.env.example` y `client/.env.example`. Sin `GEMINI_API_KEY` la plataforma funciona igual: las coincidencias
-se calculan por atributos y las fotos no se validan con IA (RNF-16). Sin SMTP, el enlace de recuperación de contraseña
-se muestra en la consola del servidor.
+Ver `server/.env.example` y `client/.env.example`. Sin `GEMINI_API_KEY`, las coincidencias se calculan por atributos y la
+validación de fotos con IA queda desactivada (RNF-16). En desarrollo sin SMTP, el enlace de recuperación aparece en la consola
+local. En producción, el correo de recuperación requiere un relay SMTP con TLS.
 
 ## Control de versiones con Git y GitHub
 
